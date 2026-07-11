@@ -1,0 +1,104 @@
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/700.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Space Grotesk", sans-serif;
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: #20242B;
+  background-color: #ffffff;
+}
+
+/* Visible keyboard focus */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #14B8E0;
+  outline-offset: 2px;
+}
+
+/* ---- Dimension-line section divider ---- */
+.dim-line {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #8A8F99;
+}
+.dim-line::before,
+.dim-line::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: currentColor;
+  opacity: 0.35;
+}
+.dim-line .tick {
+  width: 1px;
+  height: 10px;
+  background: currentColor;
+  opacity: 0.35;
+}
+.dim-line-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ---- Digital readout panel (spec tables) ---- */
+.readout {
+  background: #1B1E24;
+  border-radius: 0.5rem;
+  font-family: var(--font-mono);
+  border: 1px solid #2A2E37;
+}
+.readout-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid #2A2E37;
+  font-size: 0.85rem;
+}
+.readout-row:last-child {
+  border-bottom: none;
+}
+.readout-label {
+  color: #8A8F99;
+}
+.readout-value {
+  color: #14B8E0;
+  text-align: right;
+  font-weight: 500;
+}
+.readout-value.spark {
+  color: #F2A23C;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
