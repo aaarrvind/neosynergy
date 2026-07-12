@@ -26,12 +26,18 @@ function buildTree(rows: CategoryRow[]): CategoryNode[] {
 
 export default async function NewProductPage() {
   const supabase = createServerSupabaseClient();
-  const { data } = await supabase.rpc("get_category_tree");
+  const [{ data }, { data: allProds }] = await Promise.all([
+    supabase.rpc("get_category_tree"),
+    supabase.from("products").select("id, name").order("name"),
+  ]);
   const tree = buildTree((data as CategoryRow[]) ?? []);
   return (
     <div>
       <AdminPageHeader title="New product" />
-      <ProductForm tree={tree} />
+      <ProductForm
+        tree={tree}
+        allProducts={(allProds as { id: string; name: string }[]) ?? []}
+      />
     </div>
   );
 }

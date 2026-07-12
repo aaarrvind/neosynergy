@@ -88,6 +88,19 @@ create table if not exists product_images (
 create index if not exists idx_product_images_product on product_images(product_id);
 
 -- ---------------------------------------------------------------
+-- RELATED PRODUCTS — manually curated per product, ordered
+-- ---------------------------------------------------------------
+create table if not exists related_products (
+  product_id         uuid not null references products(id) on delete cascade,
+  related_product_id uuid not null references products(id) on delete cascade,
+  sort_order         integer not null default 0,
+  primary key (product_id, related_product_id),
+  check (product_id <> related_product_id)
+);
+
+create index if not exists idx_related_products_product on related_products(product_id);
+
+-- ---------------------------------------------------------------
 -- SPEC GROUPS + ROWS (unchanged structure)
 -- ---------------------------------------------------------------
 create table if not exists spec_groups (
@@ -250,20 +263,22 @@ create trigger set_updated_at_products
 -- ---------------------------------------------------------------
 -- Row-Level Security
 -- ---------------------------------------------------------------
-alter table services        enable row level security;
-alter table categories      enable row level security;
-alter table products        enable row level security;
-alter table product_images  enable row level security;
-alter table spec_groups     enable row level security;
-alter table spec_rows       enable row level security;
+alter table services         enable row level security;
+alter table categories       enable row level security;
+alter table products         enable row level security;
+alter table product_images   enable row level security;
+alter table spec_groups      enable row level security;
+alter table spec_rows        enable row level security;
+alter table related_products enable row level security;
 
 -- Public read
-create policy "Public read services"       on services       for select using (true);
-create policy "Public read categories"     on categories     for select using (true);
-create policy "Public read products"       on products       for select using (true);
-create policy "Public read product_images" on product_images for select using (true);
-create policy "Public read spec_groups"    on spec_groups    for select using (true);
-create policy "Public read spec_rows"      on spec_rows      for select using (true);
+create policy "Public read services"         on services         for select using (true);
+create policy "Public read categories"       on categories       for select using (true);
+create policy "Public read products"         on products         for select using (true);
+create policy "Public read product_images"   on product_images   for select using (true);
+create policy "Public read spec_groups"      on spec_groups      for select using (true);
+create policy "Public read spec_rows"        on spec_rows        for select using (true);
+create policy "Public read related_products" on related_products for select using (true);
 
 -- Authenticated (admin) full access
 create policy "Admin all services"        on services        for all using (auth.role() = 'authenticated');
@@ -271,7 +286,8 @@ create policy "Admin all categories"      on categories      for all using (auth
 create policy "Admin all products"        on products        for all using (auth.role() = 'authenticated');
 create policy "Admin all product_images"  on product_images  for all using (auth.role() = 'authenticated');
 create policy "Admin all spec_groups"     on spec_groups     for all using (auth.role() = 'authenticated');
-create policy "Admin all spec_rows"       on spec_rows       for all using (auth.role() = 'authenticated');
+create policy "Admin all spec_rows"        on spec_rows        for all using (auth.role() = 'authenticated');
+create policy "Admin all related_products" on related_products for all using (auth.role() = 'authenticated');
 
 -- ---------------------------------------------------------------
 -- Storage bucket

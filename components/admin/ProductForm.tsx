@@ -18,9 +18,13 @@ interface Props {
   existingRows?: DbSpecRow[];
   existingImages?: DbProductImage[];
   tree: CategoryNode[];
+  /** All other products (id + name) available as related-product choices */
+  allProducts?: { id: string; name: string }[];
+  /** Currently curated related product ids, in display order */
+  existingRelated?: string[];
 }
 
-export function ProductForm({ existing, existingGroups = [], existingRows = [], existingImages = [], tree }: Props) {
+export function ProductForm({ existing, existingGroups = [], existingRows = [], existingImages = [], tree, allProducts = [], existingRelated = [] }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -52,6 +56,8 @@ export function ProductForm({ existing, existingGroups = [], existingRows = [], 
         })),
     }))
   );
+
+  const [related, setRelated] = useState<string[]>(existingRelated);
 
   // Gallery images state
   const [images, setImages] = useState<{ id: string; url: string; alt: string; isNew?: boolean }[]>(
@@ -197,6 +203,30 @@ export function ProductForm({ existing, existingGroups = [], existingRows = [], 
     return null;
   }
 
+  /** Upsert the selected relations, then remove deselected ones.
+   *  Returns an error message, or null on success. */
+  async function saveRelated(productId: string): Promise<string | null> {
+    const supabase = createClient();
+    const selected = related.filter(id => id !== productId);
+    if (selected.length > 0) {
+      const { error } = await supabase.from("related_products").upsert(
+        selected.map((rid, i) => ({
+          product_id: productId,
+          related_product_id: rid,
+          sort_order: i + 1,
+        })),
+        { onConflict: "product_id,related_product_id" }
+      );
+      if (error) return error.message;
+    }
+    const del = supabase.from("related_products").delete().eq("product_id", productId);
+    const { error: delErr } = selected.length > 0
+      ? await del.not("related_product_id", "in", `(${selected.join(",")})`)
+      : await del;
+    if (delErr) return delErr.message;
+    return null;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!categoryId) { setError("Please select a category."); return; }
@@ -227,12 +257,13 @@ export function ProductForm({ existing, existingGroups = [], existingRows = [], 
       productId = (data as DbProduct).id;
     }
 
-    const [specErr, imgErr] = await Promise.all([
+    const [specErr, imgErr, relErr] = await Promise.all([
       saveSpecGroups(productId!),
       saveImages(productId!),
+      saveRelated(productId!),
     ]);
-    if (specErr || imgErr) {
-      setError([specErr, imgErr].filter(Boolean).join(" — "));
+    if (specErr || imgErr || relErr) {
+      setError([specErr, imgErr, relErr].filter(Boolean).join(" — "));
       setSaving(false);
       return;
     }
@@ -341,6 +372,56 @@ export function ProductForm({ existing, existingGroups = [], existingRows = [], 
 
       {/* Spec builder */}
       <SpecBuilder groups={specGroups} onChange={setSpecGroups} variants={variants} />
+
+      {/* Related products */}
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium text-graphite">Related products</span>
+        <p className="text-xs text-graphite/50">
+          Shown in the &ldquo;Related products&rdquo; section on this product&rsquo;s page, in this order.
+          Leave empty to automatically show other products from the same category.
+        </p>
+        <ol className="flex flex-col gap-1">
+          {related.map((rid, i) => {
+            const prod = allProducts.find(p => p.id === rid);
+            return (
+              <li key={rid} className="inline-flex items-center gap-2 rounded-md bg-steel-100 px-3 py-1.5 text-xs text-graphite">
+                <span className="font-mono text-graphite/40">#{i + 1}</span>
+                <span className="flex-1">{prod?.name ?? rid}</span>
+                <button type="button" aria-label="Move up" disabled={i === 0}
+                  onClick={() => {
+                    const next = [...related];
+                    [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                    setRelated(next);
+                  }}
+                  className="text-graphite/50 hover:text-cyan-deep disabled:opacity-30">↑</button>
+                <button type="button" aria-label="Move down" disabled={i === related.length - 1}
+                  onClick={() => {
+                    const next = [...related];
+                    [next[i], next[i + 1]] = [next[i + 1], next[i]];
+                    setRelated(next);
+                  }}
+                  className="text-graphite/50 hover:text-cyan-deep disabled:opacity-30">↓</button>
+                <button type="button" aria-label={`Remove ${prod?.name ?? "related product"}`}
+                  onClick={() => setRelated(related.filter(id => id !== rid))}>
+                  <X size={10} className="text-graphite/50 hover:text-spark" />
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+        <select
+          value=""
+          onChange={e => { if (e.target.value) setRelated([...related, e.target.value]); }}
+          className="w-full max-w-md rounded-md border border-steel-200 px-3 py-2 text-sm text-graphite focus:border-cyan focus:outline-none"
+        >
+          <option value="">Add a related product…</option>
+          {allProducts
+            .filter(p => p.id !== existing?.id && !related.includes(p.id))
+            .map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+        </select>
+      </div>
 
       {/* Standard equipment */}
       <AdminTextareaField

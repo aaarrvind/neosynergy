@@ -11,8 +11,8 @@ import { AddToQuoteButton } from "@/components/AddToQuoteButton";
 import { JsonLd } from "@/components/JsonLd";
 import { ProductGallery } from "@/components/ProductGallery";
 import {
-  getCategoryTree, flattenTree, findNodeByPath,
-  getProductsByCategory, getProductBySlug,
+  getCategoryTree, flattenTree, findNodeByPath, findNodeById,
+  getProductsByCategory, getProductBySlug, getRelatedProducts,
   getAllCategorySlugs, getAllProductSlugs
 } from "@/lib/supabase/queries";
 import { company } from "@/lib/data/company";
@@ -263,10 +263,9 @@ async function ProductDetailPage({
   const breadcrumbSlugs = [...product.categoryPath];
   const breadcrumbNames = categoryNode?.pathNames ?? [];
 
-  // Related products in same category
-  const related = (await getProductsByCategory(product.categoryId))
-    .filter(p => p.slug !== product.slug)
-    .slice(0, 4);
+  // Related products: admin-curated, falling back to same-category siblings
+  const related = await getRelatedProducts(product);
+  const allSameCategory = related.every(p => p.categoryId === product.categoryId);
 
   // Resolve hero image: fall back to first gallery image if main image is missing
   const heroImage = product.image || (product.images?.[0]?.url ?? "");
@@ -369,7 +368,9 @@ async function ProductDetailPage({
           <Container>
             <SectionDivider label="Related products" />
             <h2 className="mt-6 font-display text-xl font-semibold text-graphite">
-              More in {categoryNode?.name ?? "this category"}
+              {allSameCategory
+                ? `More in ${categoryNode?.name ?? "this category"}`
+                : "You may also be interested in"}
             </h2>
             <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {related.map(p => (
@@ -377,7 +378,7 @@ async function ProductDetailPage({
                   image={p.image}
                   href={`/products/${p.categoryPath.join("/")}/${p.slug}`}
                   categorySlug={p.categorySlug}
-                  categoryName={categoryNode?.name ?? p.categorySlug}
+                  categoryName={findNodeById(tree, p.categoryId)?.name ?? p.categorySlug}
                   variants={p.variants} />
               ))}
             </div>

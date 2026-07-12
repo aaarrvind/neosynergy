@@ -42,7 +42,11 @@ export default async function EditProductPage({ params }: { params: { id: string
   const { data: rows } = groupIds.length > 0
     ? await supabase.from("spec_rows").select("*").in("spec_group_id", groupIds).order("sort_order")
     : { data: [] };
-  const { data: imgs } = await supabase.from("product_images").select("*").eq("product_id", p.id).order("sort_order");
+  const [{ data: imgs }, { data: rels }, { data: allProds }] = await Promise.all([
+    supabase.from("product_images").select("*").eq("product_id", p.id).order("sort_order"),
+    supabase.from("related_products").select("related_product_id").eq("product_id", p.id).order("sort_order"),
+    supabase.from("products").select("id, name").neq("id", p.id).order("name"),
+  ]);
 
   return (
     <div>
@@ -53,6 +57,8 @@ export default async function EditProductPage({ params }: { params: { id: string
         existingRows={(rows as DbSpecRow[]) ?? []}
         existingImages={(imgs as DbProductImage[]) ?? []}
         tree={tree}
+        allProducts={(allProds as { id: string; name: string }[]) ?? []}
+        existingRelated={((rels as { related_product_id: string }[]) ?? []).map(r => r.related_product_id)}
       />
     </div>
   );

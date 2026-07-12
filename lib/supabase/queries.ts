@@ -325,6 +325,53 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
   }
 }
 
+/**
+ * Related products for a product page. Manually curated relations
+ * (related_products table, admin-ordered) win; when none are curated —
+ * or the table/query is unavailable — fall back to other products in
+ * the same category.
+ */
+export async function getRelatedProducts(product: Product, limit = 4): Promise<Product[]> {
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = createPublicSupabaseClient();
+      const { data: rels, error } = await supabase
+        .from("related_products")
+        .select("related_product_id, sort_order")
+        .eq("product_id", product.id)
+        .order("sort_order");
+      if (error) throw error;
+      const ids = (rels ?? []).map(r => r.related_product_id as string);
+      if (ids.length > 0) {
+        const { data: prods, error: prodErr } = await supabase
+          .from("products")
+          .select("*")
+          .in("id", ids);
+        if (prodErr) throw prodErr;
+        const tree = await getCategoryTree();
+        const flat = flattenTree(tree);
+        const byId = new Map((prods as DbProduct[] ?? []).map(p => [p.id, p]));
+        return ids
+          .map(id => byId.get(id))
+          .filter((p): p is DbProduct => !!p)
+          .slice(0, limit)
+          .map(p => {
+            const node = flat.find(n => n.id === p.category_id);
+            // Cards don't need specs/images — pass empty
+            return mapProduct(p, node?.pathSlugs ?? [], [], [], []);
+          });
+      }
+    } catch (err) {
+      console.error("[queries] getRelatedProducts (curated) failed:", err);
+      // fall through to same-category fallback
+    }
+  }
+
+  return (await getProductsByCategory(product.categoryId))
+    .filter(p => p.slug !== product.slug)
+    .slice(0, limit);
+}
+
 function getStaticProductSlugs(): { slug: string; category: string[] }[] {
   return (staticProducts as unknown as StaticProduct[]).map(p => ({
     slug: p.slug,
