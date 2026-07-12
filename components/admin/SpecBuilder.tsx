@@ -2,7 +2,13 @@
 import { useState } from "react";
 import { Plus, Trash2, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
 
-export interface SpecRowDraft { id: string; label: string; value: string; }
+export interface SpecRowDraft {
+  id: string;
+  label: string;
+  value: string;
+  /** Per-variant values, keyed by variant name (spec_rows.values JSONB) */
+  values?: Record<string, string>;
+}
 export interface SpecGroupDraft { id: string; title: string; rows: SpecRowDraft[]; }
 
 function uid() { return Math.random().toString(36).slice(2); }
@@ -38,6 +44,13 @@ export function SpecBuilder({ groups, onChange, variants }: Props) {
       ? { ...g, rows: g.rows.map(r => r.id === rid ? { ...r, [field]: val } : r) }
       : g));
   }
+  function updateRowVariantValue(gid: string, rid: string, variant: string, val: string) {
+    onChange(groups.map(g => g.id === gid
+      ? { ...g, rows: g.rows.map(r => r.id === rid
+          ? { ...r, values: { ...(r.values ?? {}), [variant]: val } }
+          : r) }
+      : g));
+  }
   function toggleCollapse(gid: string) {
     setCollapsed(c => ({ ...c, [gid]: !c[gid] }));
   }
@@ -70,15 +83,32 @@ export function SpecBuilder({ groups, onChange, variants }: Props) {
           {!collapsed[group.id] && (
             <div className="p-3 space-y-2">
               {group.rows.map(row => (
-                <div key={row.id} className="flex items-center gap-2">
-                  <input value={row.label} onChange={e => updateRow(group.id, row.id, "label", e.target.value)}
-                    className="flex-1 rounded border border-steel-200 px-2 py-1.5 text-xs text-graphite focus:border-cyan focus:outline-none" placeholder="Label (e.g. Spindle speed)" />
-                  <input value={row.value} onChange={e => updateRow(group.id, row.id, "value", e.target.value)}
-                    className="flex-1 rounded border border-steel-200 px-2 py-1.5 text-xs text-graphite focus:border-cyan focus:outline-none"
-                    placeholder={variants?.length ? "Shared value (leave blank if per-variant)" : "Value"} />
-                  <button type="button" onClick={() => removeRow(group.id, row.id)} className="text-graphite/30 hover:text-spark flex-shrink-0">
-                    <Trash2 size={13} />
-                  </button>
+                <div key={row.id} className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <input value={row.label} onChange={e => updateRow(group.id, row.id, "label", e.target.value)}
+                      className="flex-1 rounded border border-steel-200 px-2 py-1.5 text-xs text-graphite focus:border-cyan focus:outline-none" placeholder="Label (e.g. Spindle speed)" />
+                    <input value={row.value} onChange={e => updateRow(group.id, row.id, "value", e.target.value)}
+                      className="flex-1 rounded border border-steel-200 px-2 py-1.5 text-xs text-graphite focus:border-cyan focus:outline-none"
+                      placeholder={variants?.length ? "Shared value (leave blank if per-variant)" : "Value"} />
+                    <button type="button" onClick={() => removeRow(group.id, row.id)} className="text-graphite/30 hover:text-spark flex-shrink-0">
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                  {/* Per-variant values */}
+                  {variants && variants.length > 0 && (
+                    <div className="ml-4 grid gap-1 sm:grid-cols-2">
+                      {variants.map(variant => (
+                        <label key={variant} className="flex items-center gap-2">
+                          <span className="w-28 flex-shrink-0 truncate text-[10px] text-graphite/40" title={variant}>{variant}</span>
+                          <input
+                            value={row.values?.[variant] ?? ""}
+                            onChange={e => updateRowVariantValue(group.id, row.id, variant, e.target.value)}
+                            className="flex-1 rounded border border-steel-200 px-2 py-1 text-xs text-graphite focus:border-cyan focus:outline-none"
+                            placeholder="Value for this variant" />
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               <button type="button" onClick={() => addRow(group.id)}

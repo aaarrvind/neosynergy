@@ -44,7 +44,12 @@ export function ProductForm({ existing, existingGroups = [], existingRows = [], 
       rows: existingRows
         .filter(r => r.spec_group_id === g.id)
         .sort((a, b) => a.sort_order - b.sort_order)
-        .map(r => ({ id: r.id, label: r.label, value: r.value ?? "" })),
+        .map(r => ({
+          id: r.id,
+          label: r.label,
+          value: r.value ?? "",
+          values: r.values ?? undefined,
+        })),
     }))
   );
 
@@ -103,43 +108,93 @@ export function ProductForm({ existing, existingGroups = [], existingRows = [], 
     });
   }
 
-  async function saveSpecGroups(productId: string) {
-    const supabase = createClient();
-    await supabase.from("spec_groups").delete().eq("product_id", productId);
-    for (let gi = 0; gi < specGroups.length; gi++) {
-      const g = specGroups[gi];
-      const { data: gd } = await supabase
-        .from("spec_groups")
-        .insert({ product_id: productId, title: g.title, sort_order: gi + 1 })
-        .select().single();
-      if (!gd) continue;
-      for (let ri = 0; ri < g.rows.length; ri++) {
-        const r = g.rows[ri];
-        if (!r.label) continue;
-        await supabase.from("spec_rows").insert({
-          spec_group_id: (gd as DbSpecGroup).id,
-          label: r.label,
-          value: r.value || null,
-          sort_order: ri + 1,
-        });
-      }
-    }
+  /** Prune per-variant values: only keys for current variants, no empties,
+   *  null when the product has no variants or nothing remains. */
+  function cleanRowValues(rowValues: Record<string, string> | undefined): Record<string, string> | null {
+    if (!rowValues || variants.length === 0) return null;
+    const cleaned = Object.fromEntries(
+      Object.entries(rowValues).filter(
+        ([variant, v]) => variants.includes(variant) && v && v.trim()
+      )
+    );
+    return Object.keys(cleaned).length > 0 ? cleaned : null;
   }
 
-  async function saveImages(productId: string) {
+  /** Insert the new spec groups/rows first, then delete the old ones — a
+   *  failure mid-save must never destroy the previously saved specs.
+   *  Returns an error message, or null on success. */
+  async function saveSpecGroups(productId: string): Promise<string | null> {
     const supabase = createClient();
-    await supabase.from("product_images").delete().eq("product_id", productId);
-    // Insert hero as first if not already in gallery
-    const allImages = images.length > 0 ? images : [{ id: uid(), url: heroImage, alt: name }];
-    for (let i = 0; i < allImages.length; i++) {
-      if (!allImages[i].url) continue;
-      await supabase.from("product_images").insert({
-        product_id: productId,
-        url: allImages[i].url,
-        alt: allImages[i].alt || name,
-        sort_order: i + 1,
-      });
+    const groupsToSave = specGroups.filter(g => g.title.trim() || g.rows.some(r => r.label));
+
+    let newGroups: DbSpecGroup[] = [];
+    if (groupsToSave.length > 0) {
+      const { data, error } = await supabase
+        .from("spec_groups")
+        .insert(groupsToSave.map((g, gi) => ({
+          product_id: productId, title: g.title, sort_order: gi + 1,
+        })))
+        .select();
+      if (error || !data || data.length !== groupsToSave.length) {
+        return error?.message ?? "Failed to save spec groups.";
+      }
+      newGroups = data as DbSpecGroup[];
+
+      // Rows are returned in insert order, so index i maps to groupsToSave[i]
+      const rowPayload = groupsToSave.flatMap((g, gi) =>
+        g.rows
+          .filter(r => r.label)
+          .map((r, ri) => ({
+            spec_group_id: newGroups[gi].id,
+            label: r.label,
+            value: r.value || null,
+            values: cleanRowValues(r.values),
+            sort_order: ri + 1,
+          }))
+      );
+      if (rowPayload.length > 0) {
+        const { error: rowErr } = await supabase.from("spec_rows").insert(rowPayload);
+        if (rowErr) {
+          // Roll back the new groups (cascades to their rows), keep the old ones
+          await supabase.from("spec_groups").delete().in("id", newGroups.map(g => g.id));
+          return rowErr.message;
+        }
+      }
     }
+
+    const oldIds = existingGroups.map(g => g.id);
+    if (oldIds.length > 0) {
+      const { error: delErr } = await supabase.from("spec_groups").delete().in("id", oldIds);
+      if (delErr) return delErr.message;
+    }
+    return null;
+  }
+
+  /** Same insert-then-delete-old pattern as saveSpecGroups. */
+  async function saveImages(productId: string): Promise<string | null> {
+    const supabase = createClient();
+    // Insert hero as the only image if the gallery is empty
+    const allImages = (images.length > 0 ? images : [{ id: uid(), url: heroImage, alt: name }])
+      .filter(i => i.url);
+
+    if (allImages.length > 0) {
+      const { error } = await supabase.from("product_images").insert(
+        allImages.map((img, i) => ({
+          product_id: productId,
+          url: img.url,
+          alt: img.alt || name,
+          sort_order: i + 1,
+        }))
+      );
+      if (error) return error.message;
+    }
+
+    const oldIds = existingImages.map(i => i.id);
+    if (oldIds.length > 0) {
+      const { error: delErr } = await supabase.from("product_images").delete().in("id", oldIds);
+      if (delErr) return delErr.message;
+    }
+    return null;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -172,7 +227,15 @@ export function ProductForm({ existing, existingGroups = [], existingRows = [], 
       productId = (data as DbProduct).id;
     }
 
-    await Promise.all([saveSpecGroups(productId!), saveImages(productId!)]);
+    const [specErr, imgErr] = await Promise.all([
+      saveSpecGroups(productId!),
+      saveImages(productId!),
+    ]);
+    if (specErr || imgErr) {
+      setError([specErr, imgErr].filter(Boolean).join(" — "));
+      setSaving(false);
+      return;
+    }
     router.push("/admin/products");
     router.refresh();
   }
