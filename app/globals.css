@@ -70,25 +70,80 @@ select:focus-visible {
   border-radius: 0.5rem;
   font-family: var(--font-mono);
   border: 1px solid #2A2E37;
+  overflow: hidden; /* clip zebra rows to the rounded corners */
 }
-.readout-row {
+.readout-head {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.6rem 1rem;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1rem;
   border-bottom: 1px solid #2A2E37;
+  color: #C2C6CE;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.readout-head::before {
+  /* indicator LED — echoes the dim-line tick motif */
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: #14B8E0;
+  box-shadow: 0 0 6px rgba(20, 184, 224, 0.55);
+  flex-shrink: 0;
+}
+.readout-scroll {
+  overflow-x: auto;
+}
+.readout-table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: 0.85rem;
 }
-.readout-row:last-child {
-  border-bottom: none;
+.readout-table th,
+.readout-table td {
+  padding: 0.55rem 1rem;
+}
+.readout-table thead th {
+  color: #8A8F99;
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: right;
+  line-height: 1.5;
+  border-bottom: 1px solid #2A2E37;
+}
+.readout-table thead th:first-child {
+  text-align: left;
+}
+.readout-table tbody tr + tr {
+  border-top: 1px solid rgba(42, 46, 55, 0.6);
+}
+.readout-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+@media (hover: hover) and (pointer: fine) {
+  .readout-table tbody tr {
+    transition: background-color 120ms ease;
+  }
+  .readout-table tbody tr:hover {
+    background: rgba(20, 184, 224, 0.07);
+  }
 }
 .readout-label {
-  color: #8A8F99;
+  color: #A9AFBA;
+  text-align: left;
+  font-weight: 400;
+  min-width: 9rem;
 }
 .readout-value {
   color: #14B8E0;
   text-align: right;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: break-word;
 }
 .readout-value.spark {
   color: #F2A23C;
