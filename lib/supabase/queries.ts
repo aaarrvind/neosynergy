@@ -377,16 +377,38 @@ export async function getServices(): Promise<Service[]> {
 // ---------------------------------------------------------------
 // SEARCH
 // ---------------------------------------------------------------
+function staticSearch(query: string): SearchResult[] {
+  const q = query.toLowerCase();
+  const prods: SearchResult[] = (staticProducts as unknown as StaticProduct[])
+    .filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      p.tagline.toLowerCase().includes(q) ||
+      (p.keywords ?? []).some(k => k.toLowerCase().includes(q))
+    )
+    .map(p => ({
+      type: "product" as const, id: p.slug, name: p.name, tagline: p.tagline,
+      image: p.image, slug: p.slug, path_slugs: [p.categorySlug],
+    }));
+  const cats: SearchResult[] = getStaticFlatCategories()
+    .filter(c => c.name.toLowerCase().includes(q) || c.intro.toLowerCase().includes(q))
+    .map(c => ({
+      type: "category" as const, id: c.id, name: c.name, tagline: c.intro,
+      image: c.heroImage, slug: c.slug, path_slugs: c.pathSlugs,
+    }));
+  return [...prods, ...cats].slice(0, 20);
+}
+
 export async function searchCatalog(query: string): Promise<SearchResult[]> {
-  if (!query.trim()) return [];
-  if (!isSupabaseConfigured()) return [];
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  if (!isSupabaseConfigured()) return staticSearch(trimmed);
   try {
     const supabase = createPublicSupabaseClient();
-    const { data, error } = await supabase.rpc("search_catalog", { query: query.trim() });
+    const { data, error } = await supabase.rpc("search_catalog", { query: trimmed });
     if (error || !data) throw error ?? new Error("empty result");
     return data as SearchResult[];
   } catch (err) {
     console.error("[queries] searchCatalog failed:", err);
-    return [];
+    return staticSearch(trimmed);
   }
 }

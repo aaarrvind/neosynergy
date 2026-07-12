@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { ChevronRight, CheckCircle2 } from "lucide-react";
 import { Container } from "@/components/Container";
 import { SectionDivider } from "@/components/SectionDivider";
@@ -68,11 +68,15 @@ export async function generateMetadata({
   const productSlug = slugs[slugs.length - 1];
   const product = await getProductBySlug(productSlug);
   if (product) {
+    // Only emit metadata for the canonical path — non-canonical requests
+    // are redirected by the page component anyway
+    const canonicalPath = product.categoryPath.join("/");
+    if (slugs.slice(0, -1).join("/") !== canonicalPath) return {};
     return {
       title: product.name,
       description: `${product.tagline}. ${product.description[0] ?? ""}`,
       keywords: product.keywords,
-      alternates: { canonical: `/products/${slugs.join("/")}` },
+      alternates: { canonical: `/products/${canonicalPath}/${product.slug}` },
     };
   }
 
@@ -406,7 +410,22 @@ export default async function ProductsPage({
   // Try to match product: last segment = product slug
   const productSlug = slugs[slugs.length - 1];
   const product = await getProductBySlug(productSlug);
-  if (product) return <ProductDetailPage slugs={slugs} tree={tree} />;
+  if (product) {
+    // Enforce the canonical category path — otherwise every URL ending in a
+    // valid product slug renders as duplicate content
+    const requestedPath = slugs.slice(0, -1).join("/");
+    const canonicalPath = product.categoryPath.join("/");
+    if (requestedPath !== canonicalPath && canonicalPath) {
+      permanentRedirect(`/products/${canonicalPath}/${product.slug}`);
+    }
+    return <ProductDetailPage slugs={slugs} tree={tree} />;
+  }
+
+  // Legacy flat category URLs (pre-tree): /products/<leaf-slug>
+  if (slugs.length === 1) {
+    const legacy = flat.find(n => n.pathSlugs[n.pathSlugs.length - 1] === slugs[0]);
+    if (legacy) permanentRedirect(`/products/${legacy.pathSlugs.join("/")}`);
+  }
 
   notFound();
 }
