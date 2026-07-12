@@ -10,6 +10,8 @@ interface ContactDetails {
   phone?: string;
   country?: string;
   message?: string;
+  /** Honeypot field — humans never fill it */
+  website?: string;
 }
 
 interface QuoteRequestBody {
@@ -18,6 +20,76 @@ interface QuoteRequestBody {
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// ---------------------------------------------------------------
+// Abuse resistance
+// ---------------------------------------------------------------
+// In-memory rate limit. On serverless hosts each instance has its own map,
+// so the effective limit is per-instance, not global — accepted trade-off
+// to avoid an external store. Locally x-forwarded-for may be absent and all
+// traffic shares the "unknown" key.
+const hits = new Map<string, number[]>();
+const WINDOW_MS = 60 * 60 * 1000;
+const MAX_PER_WINDOW = 5;
+const MAX_TRACKED_KEYS = 10_000;
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  const timestamps = (hits.get(key) ?? []).filter(t => now - t < WINDOW_MS);
+  timestamps.push(now);
+  if (hits.size >= MAX_TRACKED_KEYS && !hits.has(key)) {
+    // Bound memory: drop the oldest tracked key
+    const oldest = hits.keys().next().value;
+    if (oldest !== undefined) hits.delete(oldest);
+  }
+  hits.set(key, timestamps);
+  return timestamps.length > MAX_PER_WINDOW;
+}
+
+// ---------------------------------------------------------------
+// Payload validation — build a trusted copy, never use raw input
+// ---------------------------------------------------------------
+const CONTACT_LIMITS: Record<string, number> = {
+  name: 200, company: 200, email: 320, phone: 50, country: 100,
+  message: 5000, website: 500,
+};
+
+function validateContact(raw: unknown): ContactDetails | string {
+  if (typeof raw !== "object" || raw === null) return "Name and email are required.";
+  const contact: Record<string, string> = {};
+  for (const [field, max] of Object.entries(CONTACT_LIMITS)) {
+    const v = (raw as Record<string, unknown>)[field];
+    if (v === undefined || v === null || v === "") continue;
+    if (typeof v !== "string") return "Invalid request body.";
+    if (v.length > max) return `The ${field} field is too long.`;
+    contact[field] = v;
+  }
+  if (!contact.name || !contact.email) return "Name and email are required.";
+  if (!EMAIL_REGEX.test(contact.email)) return "Please enter a valid email address.";
+  return contact as unknown as ContactDetails;
+}
+
+function validateItems(raw: unknown): CartItem[] | string {
+  if (!Array.isArray(raw)) return [];
+  if (raw.length > 50) return "Too many items in the request.";
+  const items: CartItem[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== "object" || entry === null) return "Invalid request body.";
+    const item = entry as Record<string, unknown>;
+    if (typeof item.name !== "string" || item.name.length > 300) return "Invalid request body.";
+    if (typeof item.categoryName !== "string" || item.categoryName.length > 200) return "Invalid request body.";
+    items.push({
+      id: typeof item.id === "string" ? item.id.slice(0, 200) : "",
+      name: item.name,
+      categorySlug: typeof item.categorySlug === "string" ? item.categorySlug.slice(0, 200) : "",
+      categoryName: item.categoryName,
+      quantity: Math.min(999, Math.max(1, Math.floor(Number(item.quantity) || 1))),
+      variant: typeof item.variant === "string" ? item.variant.slice(0, 200) : undefined,
+      notes: typeof item.notes === "string" ? item.notes.slice(0, 500) : undefined,
+    });
+  }
+  return items;
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -97,6 +169,15 @@ function buildCustomerEmailHtml(contact: ContactDetails, items: CartItem[]): str
 }
 
 export async function POST(request: NextRequest) {
+  const clientKey =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (isRateLimited(clientKey)) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later or email us directly." },
+      { status: 429 }
+    );
+  }
+
   let body: QuoteRequestBody;
   try {
     body = await request.json();
@@ -104,23 +185,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const { contact, items } = body || {};
+  const contactOrError = validateContact(body?.contact);
+  if (typeof contactOrError === "string") {
+    return NextResponse.json({ error: contactOrError }, { status: 400 });
+  }
+  const contact = contactOrError;
 
-  if (!contact?.name || !contact?.email) {
+  // Honeypot: pretend success so bots don't adapt, but send nothing
+  if (contact.website) {
+    return NextResponse.json({ ok: true });
+  }
+  delete contact.website;
+
+  const itemsOrError = validateItems(body?.items);
+  if (typeof itemsOrError === "string") {
+    return NextResponse.json({ error: itemsOrError }, { status: 400 });
+  }
+  const safeItems = itemsOrError;
+
+  if (safeItems.length === 0 && !contact.message?.trim()) {
     return NextResponse.json(
-      { error: "Name and email are required." },
+      { error: "Please add items or a message." },
       { status: 400 }
     );
   }
 
-  if (!EMAIL_REGEX.test(contact.email)) {
-    return NextResponse.json(
-      { error: "Please enter a valid email address." },
-      { status: 400 }
-    );
-  }
-
-  const safeItems = Array.isArray(items) ? items : [];
   const apiKey = process.env.RESEND_API_KEY;
   const salesEmails = (process.env.SALES_EMAILS || company.emails.join(","))
     .split(",")
@@ -143,6 +232,8 @@ export async function POST(request: NextRequest) {
       ? `New quote request from ${contact.name}${contact.company ? ` (${contact.company})` : ""}`
       : `New website enquiry from ${contact.name}`;
 
+  // Send the sales email first — it's the one that matters. If it fails,
+  // nothing was delivered yet, so a client retry is safe (no duplicates).
   try {
     await resend.emails.send({
       from: fromAddress,
@@ -151,7 +242,18 @@ export async function POST(request: NextRequest) {
       subject,
       html: buildSalesEmailHtml(contact, safeItems),
     });
+  } catch (error) {
+    console.error("[quote] Failed to send sales email:", error);
+    return NextResponse.json(
+      { error: "We couldn't send your request right now. Please try again or email us directly." },
+      { status: 502 }
+    );
+  }
 
+  // The confirmation is best-effort: the lead has already been delivered,
+  // so failing the request here would only cause duplicate sales emails
+  // when the client retries.
+  try {
     await resend.emails.send({
       from: fromAddress,
       to: contact.email,
@@ -162,11 +264,7 @@ export async function POST(request: NextRequest) {
       html: buildCustomerEmailHtml(contact, safeItems),
     });
   } catch (error) {
-    console.error("[quote] Failed to send email:", error);
-    return NextResponse.json(
-      { error: "We couldn't send your request right now. Please try again or email us directly." },
-      { status: 502 }
-    );
+    console.error("[quote] Failed to send customer confirmation:", error);
   }
 
   return NextResponse.json({ ok: true });

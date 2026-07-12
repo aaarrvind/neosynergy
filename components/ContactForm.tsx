@@ -19,6 +19,7 @@ export function ContactForm() {
       phone: String(form.get("phone") || ""),
       country: String(form.get("country") || ""),
       message: String(form.get("message") || ""),
+      website: String(form.get("website") || ""), // honeypot
     };
 
     setStatus("submitting");
@@ -62,6 +63,9 @@ export function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {/* Honeypot — hidden from humans, bots fill it */}
+      <input type="text" name="website" tabIndex={-1} autoComplete="off"
+        className="hidden" aria-hidden="true" />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Full name" name="name" required autoComplete="name" />
         <Field label="Company" name="company" autoComplete="organization" />
