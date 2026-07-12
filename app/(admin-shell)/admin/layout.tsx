@@ -18,10 +18,12 @@ export default async function AdminLayout({
 
   if (supabaseConfigured) {
     const supabase = createServerSupabaseClient();
+    // getUser() revalidates the token with Supabase Auth (defense-in-depth
+    // behind the middleware check); getSession() would trust the raw cookie.
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) redirect("/admin-login");
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) redirect("/admin-login");
   }
 
   return (
