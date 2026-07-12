@@ -18,6 +18,9 @@ import {
 import { company } from "@/lib/data/company";
 import { CategoryNode } from "@/lib/types";
 
+// Re-render from Supabase every 5 minutes so admin edits reach the public site
+export const revalidate = 300;
+
 // Build all static paths at build time
 export async function generateStaticParams() {
   const [catPaths, prodPaths] = await Promise.all([

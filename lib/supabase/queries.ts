@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "./server";
+import { createPublicSupabaseClient, isSupabaseConfigured } from "./public";
 import {
   CategoryNode, CategoryRow, Product, ProductImage,
   SpecGroup, SearchResult
@@ -156,14 +156,17 @@ export async function getCategoryTree(): Promise<CategoryNode[]> {
     return _treeCache.data;
   }
 
+  if (!isSupabaseConfigured()) return getStaticFlatCategories();
+
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = createPublicSupabaseClient();
     const { data, error } = await supabase.rpc("get_category_tree");
-    if (error || !data) throw error;
+    if (error || !data) throw error ?? new Error("empty result");
     const tree = buildTree(data as CategoryRow[]);
     _treeCache = { data: tree, ts: Date.now() };
     return tree;
-  } catch {
+  } catch (err) {
+    console.error("[queries] getCategoryTree failed:", err);
     return getStaticFlatCategories();
   }
 }
@@ -199,23 +202,50 @@ export function findNodeById(
 }
 
 export async function getAllCategorySlugs(): Promise<{ category: string[] }[]> {
-  try {
-    const tree = await getCategoryTree();
-    return flattenTree(tree).map(n => ({ category: n.pathSlugs }));
-  } catch {
-    return (staticCategories as unknown as { slug: string; name: string; shortName: string; intro: string; description: string[]; heroImage: string; metaDescription: string }[]).map(c => ({
-      category: [c.slug],
-    }));
-  }
+  // getCategoryTree already falls back to static data on failure
+  const tree = await getCategoryTree();
+  return flattenTree(tree).map(n => ({ category: n.pathSlugs }));
 }
 
 // ---------------------------------------------------------------
 // PRODUCTS
 // ---------------------------------------------------------------
 
+type StaticProduct = {
+  slug: string; categorySlug: string; name: string; tagline: string;
+  description: string[]; image: string; variants?: string[];
+  specGroups?: SpecGroup[]; standardEquipment?: string[]; keywords: string[];
+};
+
+function staticProductToProduct(p: StaticProduct): Product {
+  return {
+    id: p.slug,
+    slug: p.slug,
+    categoryId: p.categorySlug,
+    categorySlug: p.categorySlug,
+    categoryPath: [p.categorySlug],
+    name: p.name,
+    tagline: p.tagline,
+    description: p.description,
+    image: p.image,
+    variants: p.variants,
+    specGroups: p.specGroups,
+    standardEquipment: p.standardEquipment,
+    keywords: p.keywords,
+  };
+}
+
+function getStaticProductsByCategory(categoryId: string): Product[] {
+  return (staticProducts as unknown as StaticProduct[])
+    .filter(p => p.categorySlug === categoryId)
+    .map(staticProductToProduct);
+}
+
 export async function getProductsByCategory(categoryId: string): Promise<Product[]> {
+  if (!isSupabaseConfigured()) return getStaticProductsByCategory(categoryId);
+
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = createPublicSupabaseClient();
     const tree = await getCategoryTree();
     const node = flattenTree(tree).find(n => n.id === categoryId);
     if (!node) return [];
@@ -225,7 +255,8 @@ export async function getProductsByCategory(categoryId: string): Promise<Product
       .select("*")
       .eq("category_id", categoryId)
       .order("sort_order");
-    if (error || !prods || prods.length === 0) return [];
+    if (error) throw error;
+    if (!prods || prods.length === 0) return [];
 
     const pids = (prods as DbProduct[]).map(p => p.id);
 
@@ -247,36 +278,30 @@ export async function getProductsByCategory(categoryId: string): Promise<Product
       const pImgs = (imgs as DbProductImage[] ?? []).filter(i => i.product_id === p.id);
       return mapProduct(p, node.pathSlugs, pGroups, pRows, pImgs);
     });
-  } catch {
-    return (staticProducts as unknown as { slug: string; categorySlug: string; name: string; tagline: string; description: string[]; image: string; variants?: string[]; specGroups?: SpecGroup[]; standardEquipment?: string[]; keywords: string[] }[])
-      .filter(p => p.categorySlug === categoryId)
-      .map(p => ({
-        id: p.slug,
-        slug: p.slug,
-        categoryId: p.categorySlug,
-        categorySlug: p.categorySlug,
-        categoryPath: [p.categorySlug],
-        name: p.name,
-        tagline: p.tagline,
-        description: p.description,
-        image: p.image,
-        variants: p.variants,
-        specGroups: p.specGroups,
-        standardEquipment: p.standardEquipment,
-        keywords: p.keywords,
-      }));
+  } catch (err) {
+    console.error("[queries] getProductsByCategory failed:", err);
+    return getStaticProductsByCategory(categoryId);
   }
 }
 
+function getStaticProductBySlug(slug: string): Product | undefined {
+  const sp = (staticProducts as unknown as StaticProduct[]).find(p => p.slug === slug);
+  return sp ? staticProductToProduct(sp) : undefined;
+}
+
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {
+  if (!isSupabaseConfigured()) return getStaticProductBySlug(slug);
+
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = createPublicSupabaseClient();
+    // maybeSingle: a missing product is a normal 404, not an error to log
     const { data: p, error } = await supabase
       .from("products")
       .select("*")
       .eq("slug", slug)
-      .single();
-    if (error || !p) throw error;
+      .maybeSingle();
+    if (error) throw error;
+    if (!p) return undefined;
     const prod = p as DbProduct;
 
     const tree = await getCategoryTree();
@@ -294,35 +319,36 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
       : { data: [] };
 
     return mapProduct(prod, pathSlugs, groups as DbSpecGroup[] ?? [], rows as DbSpecRow[] ?? [], imgs as DbProductImage[] ?? []);
-  } catch {
-    const sp = (staticProducts as unknown as { slug: string; categorySlug: string; name: string; tagline: string; description: string[]; image: string; variants?: string[]; specGroups?: SpecGroup[]; standardEquipment?: string[]; keywords: string[] }[]).find(p => p.slug === slug);
-    if (!sp) return undefined;
-    return {
-      id: sp.slug, slug: sp.slug, categoryId: sp.categorySlug,
-      categorySlug: sp.categorySlug, categoryPath: [sp.categorySlug],
-      name: sp.name, tagline: sp.tagline, description: sp.description,
-      image: sp.image, variants: sp.variants, specGroups: sp.specGroups,
-      standardEquipment: sp.standardEquipment, keywords: sp.keywords,
-    };
+  } catch (err) {
+    console.error("[queries] getProductBySlug failed:", err);
+    return getStaticProductBySlug(slug);
   }
 }
 
+function getStaticProductSlugs(): { slug: string; category: string[] }[] {
+  return (staticProducts as unknown as StaticProduct[]).map(p => ({
+    slug: p.slug,
+    category: [p.categorySlug],
+  }));
+}
+
 export async function getAllProductSlugs(): Promise<{ slug: string; category: string[] }[]> {
+  if (!isSupabaseConfigured()) return getStaticProductSlugs();
+
   try {
-    const supabase = createServerSupabaseClient();
-    const { data } = await supabase.from("products").select("slug, category_id");
-    if (!data || data.length === 0) throw new Error("no data");
+    const supabase = createPublicSupabaseClient();
+    const { data, error } = await supabase.from("products").select("slug, category_id");
+    if (error) throw error;
+    if (!data || data.length === 0) return [];
     const tree = await getCategoryTree();
     const flat = flattenTree(tree);
     return (data as { slug: string; category_id: string }[]).map(r => {
       const node = flat.find(n => n.id === r.category_id);
       return { slug: r.slug, category: node?.pathSlugs ?? [] };
     });
-  } catch {
-    return (staticProducts as unknown as { slug: string; categorySlug: string }[]).map(p => ({
-      slug: p.slug,
-      category: [p.categorySlug],
-    }));
+  } catch (err) {
+    console.error("[queries] getAllProductSlugs failed:", err);
+    return getStaticProductSlugs();
   }
 }
 
@@ -330,17 +356,20 @@ export async function getAllProductSlugs(): Promise<{ slug: string; category: st
 // SERVICES
 // ---------------------------------------------------------------
 export async function getServices(): Promise<Service[]> {
+  if (!isSupabaseConfigured()) return staticServices;
+
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = createPublicSupabaseClient();
     const { data, error } = await supabase.from("services").select("*").order("sort_order");
-    if (error || !data) throw error;
+    if (error || !data) throw error ?? new Error("empty result");
     return (data as import("./db-types").DbService[]).map(s => ({
       slug: s.slug, name: s.name,
       shortDescription: s.short_description,
       description: Array.isArray(s.description) ? s.description : [],
       icon: s.icon,
     }));
-  } catch {
+  } catch (err) {
+    console.error("[queries] getServices failed:", err);
     return staticServices;
   }
 }
@@ -350,12 +379,14 @@ export async function getServices(): Promise<Service[]> {
 // ---------------------------------------------------------------
 export async function searchCatalog(query: string): Promise<SearchResult[]> {
   if (!query.trim()) return [];
+  if (!isSupabaseConfigured()) return [];
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = createPublicSupabaseClient();
     const { data, error } = await supabase.rpc("search_catalog", { query: query.trim() });
-    if (error || !data) throw error;
+    if (error || !data) throw error ?? new Error("empty result");
     return data as SearchResult[];
-  } catch {
+  } catch (err) {
+    console.error("[queries] searchCatalog failed:", err);
     return [];
   }
 }

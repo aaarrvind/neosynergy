@@ -2,6 +2,8 @@ import { MetadataRoute } from "next";
 import { company } from "@/lib/data/company";
 import { getCategoryTree, flattenTree, getAllProductSlugs } from "@/lib/supabase/queries";
 
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = company.website;
   const now = new Date();
