@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Container } from "./Container";
 
 export interface HeroSlide {
@@ -15,18 +15,7 @@ export interface HeroSlide {
   subcopy: string;
 }
 
-interface Capability {
-  value: string;
-  label: string;
-}
-
-export function HeroCarousel({
-  slides,
-  capabilities,
-}: {
-  slides: HeroSlide[];
-  capabilities: Capability[];
-}) {
+export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const [reduced, setReduced] = useState(false);
@@ -60,13 +49,13 @@ export function HeroCarousel({
     <section
       className="relative isolate overflow-hidden bg-graphite text-white"
       aria-roledescription="carousel"
-      aria-label="Neo Synergy capabilities"
+      aria-label="Neo Synergy"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
       onBlurCapture={() => setPaused(false)}
     >
-      {/* Full-bleed background layers (crossfade) */}
+      {/* Full-bleed background photography (crossfade) */}
       <div className="absolute inset-0 -z-10">
         {slides.map((s, i) => (
           <div
@@ -82,22 +71,16 @@ export function HeroCarousel({
               fill
               priority={i === 0}
               sizes="100vw"
-              className="hero-drift object-cover object-[70%_center]"
+              className="object-cover object-[70%_center]"
             />
           </div>
         ))}
-        <div className="absolute inset-0 bg-gradient-to-r from-graphite via-graphite/90 to-graphite/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-graphite via-transparent to-graphite/50" />
-        <div className="hero-grid absolute inset-0" />
+        {/* Legibility scrim — dark on the left where the copy sits */}
+        <div className="absolute inset-0 bg-gradient-to-r from-graphite via-graphite/80 to-graphite/25" />
+        <div className="absolute inset-0 bg-graphite/20" />
       </div>
 
-      {/* Corner registration marks */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <span className="absolute left-5 top-5 h-6 w-6 border-l border-t border-cyan/40 sm:left-8 sm:top-8" />
-        <span className="absolute bottom-5 right-5 h-6 w-6 border-b border-r border-cyan/40 sm:bottom-8 sm:right-8" />
-      </div>
-
-      <Container className="relative flex min-h-[36rem] flex-col justify-center py-20 lg:min-h-[42rem] lg:py-28">
+      <Container className="relative flex min-h-[34rem] flex-col justify-center py-20 lg:min-h-[40rem] lg:py-28">
         {/* Rotating text — layers share one grid cell so the block sizes to the
             tallest slide and never shifts the content below it */}
         <div className="grid max-w-2xl">
@@ -118,17 +101,13 @@ export function HeroCarousel({
                     : "pointer-events-none opacity-0 duration-200"
                 }`}
               >
-                <p className="flex items-center gap-2.5 font-mono text-[0.7rem] uppercase tracking-[0.28em] text-cyan">
-                  <span className="inline-block h-1.5 w-1.5 rounded-[1px] bg-cyan shadow-[0_0_8px_rgba(20,184,224,0.85)]" />
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan">
                   {s.kicker}
                 </p>
-                <HeadTag className="mt-5 font-display text-4xl font-bold leading-[1.04] sm:text-5xl lg:text-6xl">
-                  {s.headlineTop}
-                  <br />
-                  <span className="text-cyan">{s.headlineAccent}</span>
+                <HeadTag className="mt-4 font-display text-4xl font-bold leading-[1.08] sm:text-5xl lg:text-[3.25rem]">
+                  {s.headlineTop} {s.headlineAccent}
                 </HeadTag>
-                <div className="mt-6 h-px w-24 bg-gradient-to-r from-cyan to-transparent" />
-                <p className="mt-6 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg">
+                <p className="mt-5 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">
                   {s.subcopy}
                 </p>
               </div>
@@ -136,25 +115,24 @@ export function HeroCarousel({
           })}
         </div>
 
-        {/* Fixed CTAs */}
-        <div className="mt-9 flex flex-wrap gap-3">
+        {/* CTAs */}
+        <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/products"
-            className="group inline-flex items-center gap-2 rounded-md bg-cyan px-6 py-3.5 text-sm font-semibold text-graphite transition-colors hover:bg-white"
+            className="inline-flex items-center rounded bg-cyan px-6 py-3 text-sm font-semibold text-graphite transition-colors hover:bg-cyan-deep hover:text-white"
           >
-            Browse the catalog
-            <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+            Browse machines
           </Link>
           <Link
             href="/quote"
-            className="inline-flex items-center gap-2 rounded-md border border-white/25 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:border-cyan hover:text-cyan"
+            className="inline-flex items-center rounded border border-white/40 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-graphite"
           >
-            <FileText size={16} /> Request a quote
+            Request a quote
           </Link>
         </div>
 
         {/* Slide dots */}
-        <div className="mt-10 flex items-center gap-2.5" aria-label="Choose slide">
+        <div className="mt-12 flex items-center gap-2.5" aria-label="Choose slide">
           {slides.map((s, i) => (
             <button
               key={s.key}
@@ -163,29 +141,19 @@ export function HeroCarousel({
               aria-label={`Go to slide ${i + 1}: ${s.kicker}`}
               aria-current={i === active}
               className={`h-2 rounded-full transition-all duration-300 ease-out ${
-                i === active ? "w-7 bg-cyan" : "w-2 bg-white/30 hover:bg-white/60"
+                i === active ? "w-8 bg-cyan" : "w-2 bg-white/40 hover:bg-white/70"
               }`}
             />
           ))}
         </div>
-
-        {/* Fixed capability strip */}
-        <div className="mt-10 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 backdrop-blur-sm sm:grid-cols-4">
-          {capabilities.map((c) => (
-            <div key={c.value} className="bg-graphite/50 px-5 py-4">
-              <p className="font-display text-lg font-semibold text-white">{c.value}</p>
-              <p className="mt-0.5 text-xs leading-snug text-white/55">{c.label}</p>
-            </div>
-          ))}
-        </div>
       </Container>
 
-      {/* Prev / next arrow buttons */}
+      {/* Prev / next arrows */}
       <button
         type="button"
         onClick={prev}
         aria-label="Previous slide"
-        className="absolute left-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-graphite/40 text-white/80 backdrop-blur-sm transition-colors hover:border-cyan hover:text-cyan md:flex lg:left-6"
+        className="absolute left-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-graphite/30 text-white transition-colors hover:bg-graphite/70 md:flex lg:left-6"
       >
         <ChevronLeft size={20} />
       </button>
@@ -193,18 +161,10 @@ export function HeroCarousel({
         type="button"
         onClick={next}
         aria-label="Next slide"
-        className="absolute right-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-graphite/40 text-white/80 backdrop-blur-sm transition-colors hover:border-cyan hover:text-cyan md:flex lg:right-6"
+        className="absolute right-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-graphite/30 text-white transition-colors hover:bg-graphite/70 md:flex lg:right-6"
       >
         <ChevronRight size={20} />
       </button>
-
-      {/* Coordinate readout (precision motif) */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute bottom-6 right-8 hidden font-mono text-[0.65rem] tracking-wider text-white/25 lg:block"
-      >
-        N 25.20° · E 55.27°
-      </span>
     </section>
   );
 }
