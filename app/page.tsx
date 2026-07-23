@@ -9,6 +9,14 @@ import { getCategoryTree, getServices, getProductBySlug } from "@/lib/supabase/q
 
 const featuredSlugs = ["vmc-850", "cnc-lathe-1020", "vmc-650", "rtm-u324"];
 
+// Capability signals — all drawn from the company profile, no invented figures
+const heroCapabilities = [
+  { value: "Turnkey", label: "Supply · install · commission" },
+  { value: "GCC-wide", label: "UAE & the wider Gulf" },
+  { value: "Retrofit", label: "GSK control & automation" },
+  { value: "Bespoke", label: "Special-purpose machinery" },
+];
+
 export default async function HomePage() {
   const [tree, services] = await Promise.all([getCategoryTree(), getServices()]);
   const featuredProducts = await Promise.all(featuredSlugs.map((s) => getProductBySlug(s)));
@@ -16,36 +24,104 @@ export default async function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-graphite text-white">
-        <Container className="grid items-center gap-12 py-16 lg:grid-cols-2 lg:py-24">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.3em] text-cyan">
-              Machinery trading &amp; production — Dubai, UAE
+      <section className="relative isolate overflow-hidden bg-graphite text-white">
+        {/* Full-bleed background */}
+        <div className="absolute inset-0 -z-10">
+          <Image
+            src="/images/hero-robot-sparks.jpg"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="hero-drift object-cover object-[70%_center]"
+          />
+          {/* Legibility scrims: dark on the left where the copy sits, plus a base darkening */}
+          <div className="absolute inset-0 bg-gradient-to-r from-graphite via-graphite/90 to-graphite/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-graphite via-transparent to-graphite/50" />
+          {/* Blueprint grid */}
+          <div className="hero-grid absolute inset-0" />
+        </div>
+
+        {/* Corner registration marks (blueprint motif) */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <span className="absolute left-5 top-5 h-6 w-6 border-l border-t border-cyan/40 sm:left-8 sm:top-8" />
+          <span className="absolute bottom-5 right-5 h-6 w-6 border-b border-r border-cyan/40 sm:bottom-8 sm:right-8" />
+        </div>
+
+        <Container className="relative flex min-h-[36rem] flex-col justify-center py-20 lg:min-h-[42rem] lg:py-28">
+          <div className="max-w-2xl">
+            <p
+              className="hero-rise flex items-center gap-2.5 font-mono text-[0.7rem] uppercase tracking-[0.28em] text-cyan"
+              style={{ animationDelay: "0.05s" }}
+            >
+              <span className="inline-block h-1.5 w-1.5 rounded-[1px] bg-cyan shadow-[0_0_8px_rgba(20,184,224,0.85)]" />
+              Machinery Trading &amp; Production — Dubai, UAE
             </p>
-            <h1 className="mt-4 font-display text-4xl font-bold leading-tight sm:text-5xl">
-              Building machines{" "}
-              <span className="text-cyan">for a better tomorrow</span>
+
+            <h1
+              className="hero-rise mt-5 font-display text-4xl font-bold leading-[1.04] sm:text-5xl lg:text-6xl"
+              style={{ animationDelay: "0.12s" }}
+            >
+              Building machines
+              <br />
+              <span className="text-cyan">for a better tomorrow.</span>
             </h1>
-            <p className="mt-6 max-w-xl text-base leading-relaxed text-white/70">
-              Neo Synergy Machinery Trading LLC is a machinery trading and production company based in Dubai,
-              specializing in the trade and customization of machine tools, equipment, and accessories for the industrial sector.
+
+            <div
+              className="hero-line mt-6 h-px w-24 bg-gradient-to-r from-cyan to-transparent"
+              style={{ animationDelay: "0.34s" }}
+            />
+
+            <p
+              className="hero-rise mt-6 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg"
+              style={{ animationDelay: "0.2s" }}
+            >
+              We supply, install, commission, and maintain machine tools, automation,
+              and cutting tools across the UAE and wider GCC — one accountable partner,
+              from specification to production.
             </p>
-            <div className="mt-8 flex flex-wrap gap-4">
-              <Link href="/products" className="inline-flex items-center gap-2 rounded-md bg-cyan px-5 py-3 text-sm font-medium text-graphite transition-colors hover:bg-white">
-                Browse the catalog <ArrowRight size={16} />
+
+            <div
+              className="hero-rise mt-9 flex flex-wrap gap-3"
+              style={{ animationDelay: "0.28s" }}
+            >
+              <Link
+                href="/products"
+                className="group inline-flex items-center gap-2 rounded-md bg-cyan px-6 py-3.5 text-sm font-semibold text-graphite transition-colors hover:bg-white"
+              >
+                Browse the catalog
+                <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
               </Link>
-              <Link href="/quote" className="inline-flex items-center gap-2 rounded-md border border-white/20 px-5 py-3 text-sm font-medium text-white transition-colors hover:border-cyan hover:text-cyan">
+              <Link
+                href="/quote"
+                className="inline-flex items-center gap-2 rounded-md border border-white/25 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:border-cyan hover:text-cyan"
+              >
                 <FileText size={16} /> Request a quote
               </Link>
             </div>
           </div>
-          <div className="relative">
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg" style={{ clipPath: "polygon(12% 0, 100% 0, 100% 100%, 0% 100%)" }}>
-              <Image src="/images/hero-robot-sparks.jpg" alt="Robotic arc welding cell with sparks" fill priority className="object-cover" sizes="(min-width: 1024px) 50vw, 100vw" />
-            </div>
-            <div className="absolute -bottom-6 -left-6 hidden h-28 w-28 rounded-lg border border-cyan/30 sm:block" />
+
+          {/* Capability strip */}
+          <div
+            className="hero-rise mt-14 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 backdrop-blur-sm sm:grid-cols-4"
+            style={{ animationDelay: "0.36s" }}
+          >
+            {heroCapabilities.map((c) => (
+              <div key={c.value} className="bg-graphite/50 px-5 py-4">
+                <p className="font-display text-lg font-semibold text-white">{c.value}</p>
+                <p className="mt-0.5 text-xs leading-snug text-white/55">{c.label}</p>
+              </div>
+            ))}
           </div>
         </Container>
+
+        {/* Coordinate readout (precision motif) */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute bottom-6 right-8 hidden font-mono text-[0.65rem] tracking-wider text-white/25 lg:block"
+        >
+          N 25.20° · E 55.27°
+        </span>
       </section>
 
       {/* Who we are */}
