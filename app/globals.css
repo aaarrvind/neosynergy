@@ -169,16 +169,6 @@ select:focus-visible {
   animation: heroDrift 26s ease-out both;
 }
 
-/* Carousel progress indicator: fills over the slide interval */
-@keyframes heroProg {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
-}
-.hero-prog {
-  transform-origin: left;
-  animation: heroProg 7s linear forwards;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

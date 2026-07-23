@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, FileText, Pause, Play } from "lucide-react";
+import { ArrowRight, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { Container } from "./Container";
 
 export interface HeroSlide {
@@ -43,14 +43,18 @@ export function HeroCarousel({
     (i: number) => setActive(((i % slides.length) + slides.length) % slides.length),
     [slides.length]
   );
+  const next = useCallback(() => setActive((p) => (p + 1) % slides.length), [slides.length]);
+  const prev = useCallback(
+    () => setActive((p) => (p - 1 + slides.length) % slides.length),
+    [slides.length]
+  );
 
-  // Advance when the active slide's progress bar finishes its fill. This keeps
-  // the visible timer and the actual advance perfectly in sync, and pausing the
-  // bar's animation pauses the advance too.
-  const onProgressEnd = useCallback(() => {
-    if (reduced) return; // no auto-advance for reduced motion
-    setActive((p) => (p + 1) % slides.length);
-  }, [reduced, slides.length]);
+  // Auto-advance, paused on hover/focus and disabled for reduced motion
+  useEffect(() => {
+    if (paused || reduced) return;
+    const t = setTimeout(() => setActive((p) => (p + 1) % slides.length), 7000);
+    return () => clearTimeout(t);
+  }, [active, paused, reduced, slides.length]);
 
   return (
     <section
@@ -149,40 +153,20 @@ export function HeroCarousel({
           </Link>
         </div>
 
-        {/* Progress indicators + play/pause */}
-        <div className="mt-10 flex items-center gap-4">
-          <div className="flex max-w-xs flex-1 items-center gap-2">
-            {slides.map((s, i) => (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => go(i)}
-                aria-label={`Show slide ${i + 1}: ${s.kicker}`}
-                aria-current={i === active}
-                className="group relative h-1 flex-1 overflow-hidden rounded-full bg-white/20"
-              >
-                <span
-                  onAnimationEnd={i === active ? onProgressEnd : undefined}
-                  style={i === active ? { animationPlayState: paused ? "paused" : "running" } : undefined}
-                  className={`absolute inset-y-0 left-0 w-full origin-left rounded-full bg-cyan ${
-                    i === active
-                      ? "hero-prog"
-                      : i < active
-                        ? "scale-x-100"
-                        : "scale-x-0"
-                  }`}
-                />
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => setPaused((p) => !p)}
-            aria-label={paused ? "Play slideshow" : "Pause slideshow"}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white/70 transition-colors hover:border-cyan hover:text-cyan"
-          >
-            {paused ? <Play size={13} /> : <Pause size={13} />}
-          </button>
+        {/* Slide dots */}
+        <div className="mt-10 flex items-center gap-2.5" aria-label="Choose slide">
+          {slides.map((s, i) => (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => go(i)}
+              aria-label={`Go to slide ${i + 1}: ${s.kicker}`}
+              aria-current={i === active}
+              className={`h-2 rounded-full transition-all duration-300 ease-out ${
+                i === active ? "w-7 bg-cyan" : "w-2 bg-white/30 hover:bg-white/60"
+              }`}
+            />
+          ))}
         </div>
 
         {/* Fixed capability strip */}
@@ -195,6 +179,24 @@ export function HeroCarousel({
           ))}
         </div>
       </Container>
+
+      {/* Prev / next arrow buttons */}
+      <button
+        type="button"
+        onClick={prev}
+        aria-label="Previous slide"
+        className="absolute left-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-graphite/40 text-white/80 backdrop-blur-sm transition-colors hover:border-cyan hover:text-cyan md:flex lg:left-6"
+      >
+        <ChevronLeft size={20} />
+      </button>
+      <button
+        type="button"
+        onClick={next}
+        aria-label="Next slide"
+        className="absolute right-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-graphite/40 text-white/80 backdrop-blur-sm transition-colors hover:border-cyan hover:text-cyan md:flex lg:right-6"
+      >
+        <ChevronRight size={20} />
+      </button>
 
       {/* Coordinate readout (precision motif) */}
       <span
