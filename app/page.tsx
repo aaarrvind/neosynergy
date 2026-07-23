@@ -5,9 +5,51 @@ import { Container } from "@/components/Container";
 import { SectionDivider } from "@/components/SectionDivider";
 import { ServiceIcon } from "@/components/ServiceIcon";
 import { ProductCard } from "@/components/ProductCard";
+import { HeroCarousel, HeroSlide } from "@/components/HeroCarousel";
 import { getCategoryTree, getServices, getProductBySlug } from "@/lib/supabase/queries";
 
 const featuredSlugs = ["vmc-850", "cnc-lathe-1020", "vmc-650", "rtm-u324"];
+
+// Hero carousel — one slide per capability area. All copy is drawn from the
+// company profile / services; no invented figures.
+const heroSlides: HeroSlide[] = [
+  {
+    key: "machine-tools",
+    image: "/images/hero-robot-sparks.jpg",
+    kicker: "Machinery Trading & Production — Dubai, UAE",
+    headlineTop: "Building machines",
+    headlineAccent: "for a better tomorrow.",
+    subcopy:
+      "We supply, install, commission, and maintain machine tools, automation, and cutting tools across the UAE and wider GCC — one accountable partner, from specification to production.",
+  },
+  {
+    key: "automation",
+    image: "/images/hero-sparks.jpg",
+    kicker: "Automation & Robotics",
+    headlineTop: "Robotic cells,",
+    headlineAccent: "built around your line.",
+    subcopy:
+      "From single robot arms to complete automated welding, loading, and pack-stacking lines — supplied with GSK controls, drives, and end-of-arm tooling, configured for your cycle time.",
+  },
+  {
+    key: "retrofitting",
+    image: "/images/hero-lathe-closeup.jpg",
+    kicker: "Retrofitting & Control Upgrades",
+    headlineTop: "New control on",
+    headlineAccent: "the machines you own.",
+    subcopy:
+      "We retrofit existing lathes, mills, grinders, and machining centres with current-generation GSK controls, drives, and servo motors — extending asset life and sharpening accuracy.",
+  },
+  {
+    key: "special-purpose",
+    image: "/images/hero-milling.jpg",
+    kicker: "Special-Purpose Machinery",
+    headlineTop: "Engineered for",
+    headlineAccent: "your exact process.",
+    subcopy:
+      "When a standard machine can't meet your process, our engineering partner Synergy International designs and builds purpose-built machinery for steel, aluminium, aviation, and beyond.",
+  },
+];
 
 // Capability signals — all drawn from the company profile, no invented figures
 const heroCapabilities = [
@@ -24,105 +66,7 @@ export default async function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative isolate overflow-hidden bg-graphite text-white">
-        {/* Full-bleed background */}
-        <div className="absolute inset-0 -z-10">
-          <Image
-            src="/images/hero-robot-sparks.jpg"
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className="hero-drift object-cover object-[70%_center]"
-          />
-          {/* Legibility scrims: dark on the left where the copy sits, plus a base darkening */}
-          <div className="absolute inset-0 bg-gradient-to-r from-graphite via-graphite/90 to-graphite/30" />
-          <div className="absolute inset-0 bg-gradient-to-t from-graphite via-transparent to-graphite/50" />
-          {/* Blueprint grid */}
-          <div className="hero-grid absolute inset-0" />
-        </div>
-
-        {/* Corner registration marks (blueprint motif) */}
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <span className="absolute left-5 top-5 h-6 w-6 border-l border-t border-cyan/40 sm:left-8 sm:top-8" />
-          <span className="absolute bottom-5 right-5 h-6 w-6 border-b border-r border-cyan/40 sm:bottom-8 sm:right-8" />
-        </div>
-
-        <Container className="relative flex min-h-[36rem] flex-col justify-center py-20 lg:min-h-[42rem] lg:py-28">
-          <div className="max-w-2xl">
-            <p
-              className="hero-rise flex items-center gap-2.5 font-mono text-[0.7rem] uppercase tracking-[0.28em] text-cyan"
-              style={{ animationDelay: "0.05s" }}
-            >
-              <span className="inline-block h-1.5 w-1.5 rounded-[1px] bg-cyan shadow-[0_0_8px_rgba(20,184,224,0.85)]" />
-              Machinery Trading &amp; Production — Dubai, UAE
-            </p>
-
-            <h1
-              className="hero-rise mt-5 font-display text-4xl font-bold leading-[1.04] sm:text-5xl lg:text-6xl"
-              style={{ animationDelay: "0.12s" }}
-            >
-              Building machines
-              <br />
-              <span className="text-cyan">for a better tomorrow.</span>
-            </h1>
-
-            <div
-              className="hero-line mt-6 h-px w-24 bg-gradient-to-r from-cyan to-transparent"
-              style={{ animationDelay: "0.34s" }}
-            />
-
-            <p
-              className="hero-rise mt-6 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg"
-              style={{ animationDelay: "0.2s" }}
-            >
-              We supply, install, commission, and maintain machine tools, automation,
-              and cutting tools across the UAE and wider GCC — one accountable partner,
-              from specification to production.
-            </p>
-
-            <div
-              className="hero-rise mt-9 flex flex-wrap gap-3"
-              style={{ animationDelay: "0.28s" }}
-            >
-              <Link
-                href="/products"
-                className="group inline-flex items-center gap-2 rounded-md bg-cyan px-6 py-3.5 text-sm font-semibold text-graphite transition-colors hover:bg-white"
-              >
-                Browse the catalog
-                <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
-              </Link>
-              <Link
-                href="/quote"
-                className="inline-flex items-center gap-2 rounded-md border border-white/25 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:border-cyan hover:text-cyan"
-              >
-                <FileText size={16} /> Request a quote
-              </Link>
-            </div>
-          </div>
-
-          {/* Capability strip */}
-          <div
-            className="hero-rise mt-14 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 backdrop-blur-sm sm:grid-cols-4"
-            style={{ animationDelay: "0.36s" }}
-          >
-            {heroCapabilities.map((c) => (
-              <div key={c.value} className="bg-graphite/50 px-5 py-4">
-                <p className="font-display text-lg font-semibold text-white">{c.value}</p>
-                <p className="mt-0.5 text-xs leading-snug text-white/55">{c.label}</p>
-              </div>
-            ))}
-          </div>
-        </Container>
-
-        {/* Coordinate readout (precision motif) */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute bottom-6 right-8 hidden font-mono text-[0.65rem] tracking-wider text-white/25 lg:block"
-        >
-          N 25.20° · E 55.27°
-        </span>
-      </section>
+      <HeroCarousel slides={heroSlides} capabilities={heroCapabilities} />
 
       {/* Who we are */}
       <section className="py-16">

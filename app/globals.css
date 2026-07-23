@@ -160,26 +160,6 @@ select:focus-visible {
   mask-image: radial-gradient(ellipse 75% 75% at 28% 42%, #000 35%, transparent 78%);
 }
 
-/* Staggered entrance for hero content */
-@keyframes heroRise {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.hero-rise {
-  opacity: 0;
-  animation: heroRise 0.62s cubic-bezier(0.23, 1, 0.32, 1) both;
-}
-
-/* Accent underline wipe */
-@keyframes heroLine {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
-}
-.hero-line {
-  transform-origin: left;
-  animation: heroLine 0.8s cubic-bezier(0.23, 1, 0.32, 1) both;
-}
-
 /* Very slow background drift (always covers: stays above scale 1) */
 @keyframes heroDrift {
   from { transform: scale(1.06); }
@@ -187,6 +167,16 @@ select:focus-visible {
 }
 .hero-drift {
   animation: heroDrift 26s ease-out both;
+}
+
+/* Carousel progress indicator: fills over the slide interval */
+@keyframes heroProg {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.hero-prog {
+  transform-origin: left;
+  animation: heroProg 7s linear forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
