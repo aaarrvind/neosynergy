@@ -23,14 +23,14 @@ export function ProductCard({
   variants,
 }: ProductCardProps) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-lg border border-steel-100 bg-white transition-shadow hover:shadow-md">
-      <div className="relative aspect-[4/3] w-full bg-steel-50">
+    <div className="card-hover zoom flex flex-col overflow-hidden rounded-lg border border-steel-100 bg-white">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-steel-50">
         {image ? (
           <Image
             src={image}
             alt={name}
             fill
-            className="object-cover"
+            className="zoom-img object-cover"
             sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
           />
         ) : (
@@ -62,9 +62,9 @@ export function ProductCard({
           {href && (
             <Link
               href={href}
-              className="inline-flex items-center gap-1 text-xs font-medium text-cyan-deep hover:underline"
+              className="arrow-link inline-flex items-center gap-1 text-xs font-medium text-cyan-deep hover:text-graphite"
             >
-              Details <ArrowRight size={14} />
+              Details <ArrowRight size={14} className="arrow-icon" />
             </Link>
           )}
         </div>

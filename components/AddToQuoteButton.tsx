@@ -43,8 +43,8 @@ export function AddToQuoteButton({
 
   const buttonClasses =
     size === "lg"
-      ? "inline-flex items-center justify-center gap-2 rounded-md bg-graphite px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-cyan-deep"
-      : "inline-flex items-center justify-center gap-2 rounded-md border border-steel-200 bg-white px-3 py-2 text-xs font-medium text-graphite transition-colors hover:border-cyan hover:text-cyan-deep";
+      ? "pressable inline-flex items-center justify-center gap-2 rounded-md bg-graphite px-5 py-3 text-sm font-medium text-white hover:bg-cyan-deep"
+      : "pressable inline-flex items-center justify-center gap-2 rounded-md border border-steel-200 bg-white px-3 py-2 text-xs font-medium text-graphite hover:border-cyan hover:text-cyan-deep";
 
   return (
     <div className="flex flex-col gap-2">

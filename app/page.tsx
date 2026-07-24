@@ -116,9 +116,9 @@ export default async function HomePage() {
             </div>
             <Link
               href="/products"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-deep hover:text-graphite"
+              className="arrow-link pressable inline-flex items-center gap-2 text-sm font-semibold text-cyan-deep hover:text-graphite"
             >
-              View all products <ArrowRight size={16} />
+              View all products <ArrowRight size={16} className="arrow-icon" />
             </Link>
           </div>
 
@@ -127,14 +127,14 @@ export default async function HomePage() {
               <Link
                 key={node.id}
                 href={`/products/${node.pathSlugs.join("/")}`}
-                className="group relative flex aspect-[16/10] flex-col justify-end overflow-hidden rounded-lg"
+                className="zoom arrow-link relative flex aspect-[16/10] flex-col justify-end overflow-hidden rounded-lg"
               >
                 {node.heroImage && (
                   <Image
                     src={node.heroImage}
                     alt={node.name}
                     fill
-                    className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                    className="zoom-img object-cover"
                     sizes="(min-width: 640px) 50vw, 100vw"
                   />
                 )}
@@ -146,7 +146,7 @@ export default async function HomePage() {
                   <p className="mt-1 max-w-md text-sm text-white/70">{node.intro}</p>
                   <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-white">
                     Explore {node.shortName || node.name}
-                    <ArrowRight size={15} className="text-cyan transition-transform group-hover:translate-x-1" />
+                    <ArrowRight size={15} className="arrow-icon text-cyan" />
                   </span>
                 </div>
               </Link>
@@ -167,9 +167,9 @@ export default async function HomePage() {
             </div>
             <Link
               href="/products"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-deep hover:text-graphite"
+              className="arrow-link pressable inline-flex items-center gap-2 text-sm font-semibold text-cyan-deep hover:text-graphite"
             >
-              All machines <ArrowRight size={16} />
+              All machines <ArrowRight size={16} className="arrow-icon" />
             </Link>
           </div>
 
@@ -208,9 +208,9 @@ export default async function HomePage() {
             </div>
             <Link
               href="/services"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-deep hover:text-graphite"
+              className="arrow-link pressable inline-flex items-center gap-2 text-sm font-semibold text-cyan-deep hover:text-graphite"
             >
-              All services <ArrowRight size={16} />
+              All services <ArrowRight size={16} className="arrow-icon" />
             </Link>
           </div>
 
@@ -269,7 +269,7 @@ export default async function HomePage() {
               </p>
               <Link
                 href="/about"
-                className="mt-7 inline-flex items-center gap-2 rounded border border-graphite/20 px-5 py-2.5 text-sm font-semibold text-graphite transition-colors hover:border-graphite hover:bg-graphite hover:text-white"
+                className="pressable mt-7 inline-flex items-center gap-2 rounded border border-graphite/20 px-5 py-2.5 text-sm font-semibold text-graphite hover:border-graphite hover:bg-graphite hover:text-white"
               >
                 More about Neo Synergy <ArrowRight size={16} />
               </Link>
@@ -295,13 +295,13 @@ export default async function HomePage() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/quote"
-                className="inline-flex items-center rounded bg-cyan px-6 py-3 text-sm font-semibold text-graphite transition-colors hover:bg-cyan-deep hover:text-white"
+                className="pressable inline-flex items-center rounded bg-cyan px-6 py-3 text-sm font-semibold text-graphite hover:bg-cyan-deep hover:text-white"
               >
                 Request a quote
               </Link>
               <Link
                 href="/contact"
-                className="inline-flex items-center rounded border border-white/40 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-graphite"
+                className="pressable inline-flex items-center rounded border border-white/40 px-6 py-3 text-sm font-semibold text-white hover:bg-white hover:text-graphite"
               >
                 Talk to our team
               </Link>

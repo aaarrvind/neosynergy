@@ -95,10 +95,10 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
                 aria-label={s.kicker}
                 aria-hidden={!isActive}
                 style={{ gridArea: "1 / 1" }}
-                className={`transition-opacity ease-out ${
+                className={`transition-[opacity,transform] [transition-timing-function:var(--ease-out-strong)] ${
                   isActive
-                    ? "opacity-100 duration-500"
-                    : "pointer-events-none opacity-0 duration-200"
+                    ? "translate-y-0 opacity-100 duration-500"
+                    : "pointer-events-none translate-y-2 opacity-0 duration-200"
                 }`}
               >
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan">
@@ -119,13 +119,13 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/products"
-            className="inline-flex items-center rounded bg-cyan px-6 py-3 text-sm font-semibold text-graphite transition-colors hover:bg-cyan-deep hover:text-white"
+            className="pressable inline-flex items-center rounded bg-cyan px-6 py-3 text-sm font-semibold text-graphite hover:bg-cyan-deep hover:text-white"
           >
             Browse machines
           </Link>
           <Link
             href="/quote"
-            className="inline-flex items-center rounded border border-white/40 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-graphite"
+            className="pressable inline-flex items-center rounded border border-white/40 px-6 py-3 text-sm font-semibold text-white hover:bg-white hover:text-graphite"
           >
             Request a quote
           </Link>
@@ -140,7 +140,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
               onClick={() => go(i)}
               aria-label={`Go to slide ${i + 1}: ${s.kicker}`}
               aria-current={i === active}
-              className={`h-2 rounded-full transition-all duration-300 ease-out ${
+              className={`h-2 rounded-full transition-[width,background-color] duration-300 [transition-timing-function:var(--ease-out-strong)] ${
                 i === active ? "w-8 bg-cyan" : "w-2 bg-white/40 hover:bg-white/70"
               }`}
             />
@@ -153,7 +153,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
         type="button"
         onClick={prev}
         aria-label="Previous slide"
-        className="absolute left-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-graphite/30 text-white transition-colors hover:bg-graphite/70 md:flex lg:left-6"
+        className="pressable absolute left-3 top-1/2 -mt-[22px] hidden h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-graphite/30 text-white hover:bg-graphite/70 md:flex lg:left-6"
       >
         <ChevronLeft size={20} />
       </button>
@@ -161,7 +161,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
         type="button"
         onClick={next}
         aria-label="Next slide"
-        className="absolute right-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-graphite/30 text-white transition-colors hover:bg-graphite/70 md:flex lg:right-6"
+        className="pressable absolute right-3 top-1/2 -mt-[22px] hidden h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-graphite/30 text-white hover:bg-graphite/70 md:flex lg:right-6"
       >
         <ChevronRight size={20} />
       </button>

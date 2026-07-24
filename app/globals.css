@@ -14,6 +14,10 @@
   --font-display: "Space Grotesk", sans-serif;
   --font-sans: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+
+  /* Strong easing curves — built-in CSS easings are too weak to feel intentional */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 html {
@@ -23,6 +27,55 @@ html {
 body {
   color: #20242B;
   background-color: #ffffff;
+}
+
+/* ---- Interaction utilities ----
+   Small, shared craft details: press feedback on anything pressable,
+   image zoom and card lift gated to hover-capable pointers only
+   (touch taps trigger false hovers), and an arrow nudge for text links. */
+
+/* Pressable: color transitions + scale-down press feedback in one
+   declaration (replaces Tailwind's transition-colors on these elements
+   so the two transition rules don't fight). */
+.pressable {
+  transition:
+    transform 160ms var(--ease-out-strong),
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease;
+}
+.pressable:active {
+  transform: scale(0.97);
+}
+
+/* Media zoom inside cards/tiles — hover-capable devices only */
+.zoom-img {
+  transition: transform 500ms var(--ease-out-strong);
+}
+@media (hover: hover) and (pointer: fine) {
+  .zoom:hover .zoom-img {
+    transform: scale(1.04);
+  }
+}
+
+/* Card shadow lift — hover-capable devices only */
+.card-hover {
+  transition: box-shadow 200ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .card-hover:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.08);
+  }
+}
+
+/* Arrow nudge on text links — transform-only, no layout shift */
+.arrow-link .arrow-icon {
+  transition: transform 160ms var(--ease-out-strong);
+}
+@media (hover: hover) and (pointer: fine) {
+  .arrow-link:hover .arrow-icon {
+    transform: translateX(3px);
+  }
 }
 
 /* Visible keyboard focus */
