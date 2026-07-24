@@ -12,55 +12,88 @@ export const metadata: Metadata = {
   alternates: { canonical: "/services" },
 };
 
+const num = (i: number) => String(i + 1).padStart(2, "0");
+
 export default async function ServicesPage() {
   const services = await getServices();
+
   return (
     <>
       {/* Page header */}
-      <section className="bg-graphite py-16 text-white lg:py-20">
+      <section className="bg-graphite py-16 text-white lg:py-24">
         <Container>
           <Eyebrow label="Services" className="text-cyan" />
-          <h1 className="mt-3 max-w-2xl font-display text-3xl font-bold sm:text-4xl">
+          <h1 className="mt-4 max-w-3xl font-display text-3xl font-bold leading-[1.15] sm:text-4xl lg:text-[2.75rem]">
             A one-stop service for machine tools and automation
           </h1>
-          <p className="mt-4 max-w-2xl text-white/70">
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg">
             Supply, installation, commissioning, maintenance, and retrofitting —
             for both standard and special-purpose machinery.
           </p>
         </Container>
       </section>
 
-      {/* Service list */}
-      <section className="py-16 lg:py-20">
+      {/* Index — the whole offering at a glance, and a way into each entry */}
+      <section className="border-b border-steel-100 bg-steel-50 py-10 lg:py-12">
+        <Container>
+          <ul className="grid gap-x-10 gap-y-px sm:grid-cols-2 lg:grid-cols-3">
+            {services.map((service, i) => (
+              <li key={service.slug}>
+                <a
+                  href={`#${service.slug}`}
+                  className="group flex items-baseline gap-3 border-t border-steel-200 py-3.5"
+                >
+                  <span className="text-xs font-semibold tabular-nums text-cyan-deep">
+                    {num(i)}
+                  </span>
+                  <span className="font-display text-sm font-medium text-graphite transition-colors group-hover:text-cyan-deep">
+                    {service.name}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </Container>
+      </section>
+
+      {/* Service entries — one consistent rail, never mirrored */}
+      <section className="py-8 lg:py-12">
         <Container>
           <div className="flex flex-col divide-y divide-steel-100">
-            {services.map((service, index) => (
-              <div
+            {services.map((service, i) => (
+              <article
                 key={service.slug}
                 id={service.slug}
-                className={`grid scroll-mt-24 gap-8 py-12 first:pt-0 last:pb-0 lg:grid-cols-12 lg:items-start ${
-                  index % 2 === 1 ? "lg:[&>*:first-child]:order-2" : ""
-                }`}
+                className="grid scroll-mt-24 gap-6 py-12 lg:grid-cols-12 lg:gap-10 lg:py-16 lg:scroll-mt-32"
               >
+                {/* Left rail: meta, title, summary */}
                 <div className="lg:col-span-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-50 text-cyan-deep">
-                    <ServiceIcon name={service.icon} size={24} />
+                  <div className="flex items-center gap-3 text-cyan-deep">
+                    <ServiceIcon name={service.icon} size={22} />
+                    <span className="text-xs font-semibold tabular-nums">
+                      {num(i)}
+                    </span>
                   </div>
-                  <h2 className="mt-4 font-display text-2xl font-semibold text-graphite">
+                  <h2 className="mt-4 font-display text-2xl font-semibold leading-tight text-graphite">
                     {service.name}
                   </h2>
-                  <p className="mt-2 text-sm font-medium text-graphite/50">
+                  <p className="mt-3 text-sm leading-relaxed text-graphite/55">
                     {service.shortDescription}
                   </p>
                 </div>
-                <div className="lg:col-span-8">
-                  {service.description.map((paragraph, i) => (
-                    <p key={i} className="mb-4 leading-relaxed text-graphite/70 last:mb-0">
+
+                {/* Right column: detail, held to a readable measure */}
+                <div className="lg:col-span-7 lg:col-start-6">
+                  {service.description.map((paragraph, p) => (
+                    <p
+                      key={p}
+                      className="mb-4 max-w-[68ch] text-[15px] leading-[1.75] text-graphite/70 last:mb-0"
+                    >
                       {paragraph}
                     </p>
                   ))}
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         </Container>
