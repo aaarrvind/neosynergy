@@ -8,7 +8,7 @@ export function Logo({ variant = "header" }: { variant?: "header" | "footer" }) 
         alt=""
         width={243}
         height={86}
-        className={variant === "header" ? "h-7 w-auto" : "h-9 w-auto"}
+        className={variant === "header" ? "h-8 w-auto" : "h-9 w-auto"}
         priority={variant === "header"}
       />
       <span className="flex flex-col leading-tight">

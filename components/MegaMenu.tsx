@@ -56,10 +56,13 @@ export function MegaMenu({ tree, active = false }: Props) {
         />
       </button>
 
-      {/* Panel */}
+      {/* Panel — top must equal the header's full height so it sits flush.
+          The menu only renders at lg+, where the header is always:
+          utility bar 36px + 1px border + main bar 64px + 1px border = 102px.
+          Keep in sync if those bar heights change in Header.tsx. */}
       {open && (
         <div
-          className="menu-panel fixed left-0 right-0 top-[52px] z-40 bg-graphite border-t border-white/10 shadow-2xl"
+          className="menu-panel fixed left-0 right-0 top-[102px] z-40 bg-graphite border-t border-white/10 shadow-2xl"
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
         >
