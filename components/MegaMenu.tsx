@@ -6,9 +6,11 @@ import { CategoryNode } from "@/lib/types";
 
 interface Props {
   tree: CategoryNode[];
+  /** True when the current route is under /products */
+  active?: boolean;
 }
 
-export function MegaMenu({ tree }: Props) {
+export function MegaMenu({ tree, active = false }: Props) {
   const [open, setOpen] = useState(false);
   const [activeL1, setActiveL1] = useState<string | null>(null);
   const [activeL2, setActiveL2] = useState<string | null>(null);
@@ -38,19 +40,26 @@ export function MegaMenu({ tree }: Props) {
     >
       {/* Trigger */}
       <button
-        className="flex items-center gap-1 font-display text-sm tracking-wide text-white/80 hover:text-white transition-colors"
+        className={`flex items-center gap-1 border-b-2 pb-px font-display text-sm tracking-wide transition-colors ${
+          active
+            ? "border-cyan text-white"
+            : "border-transparent text-white/80 hover:text-white"
+        }`}
         aria-expanded={open}
         aria-haspopup="true"
         onClick={() => setOpen(v => !v)}
       >
         Products
-        <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown
+          size={14}
+          className={`transition-transform duration-200 [transition-timing-function:var(--ease-out-strong)] ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {/* Panel */}
       {open && (
         <div
-          className="fixed left-0 right-0 top-[52px] z-40 bg-graphite border-t border-white/10 shadow-2xl"
+          className="menu-panel fixed left-0 right-0 top-[52px] z-40 bg-graphite border-t border-white/10 shadow-2xl"
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
         >
@@ -58,7 +67,7 @@ export function MegaMenu({ tree }: Props) {
             <div className="flex gap-0">
               {/* Level 1 */}
               <div className="w-56 flex-shrink-0 border-r border-white/10 pr-4">
-                <p className="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-white/30 mb-3">Categories</p>
+                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-white/40 mb-3">Categories</p>
                 <ul className="flex flex-col gap-0.5">
                   {l1.map(node => (
                     <li key={node.id}>
@@ -90,7 +99,7 @@ export function MegaMenu({ tree }: Props) {
               {/* Level 2 */}
               {l2.length > 0 && (
                 <div className="w-56 flex-shrink-0 border-r border-white/10 px-4">
-                  <p className="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-white/30 mb-3">
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-white/40 mb-3">
                     {l1.find(n => n.id === activeL1)?.name}
                   </p>
                   <ul className="flex flex-col gap-0.5">
@@ -116,7 +125,7 @@ export function MegaMenu({ tree }: Props) {
               {/* Level 3 */}
               {l3.length > 0 && (
                 <div className="w-56 flex-shrink-0 border-r border-white/10 px-4">
-                  <p className="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-white/30 mb-3">
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-white/40 mb-3">
                     {l2.find(n => n.id === activeL2)?.name}
                   </p>
                   <ul className="flex flex-col gap-0.5">

@@ -78,6 +78,22 @@ body {
   }
 }
 
+/* Menu/panel enter: fades and settles down from the trigger bar.
+   Exit stays instant (unmount) — asymmetric on purpose. */
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.menu-panel {
+  animation: menuIn 160ms var(--ease-out-strong);
+}
+
 /* Visible keyboard focus */
 a:focus-visible,
 button:focus-visible,

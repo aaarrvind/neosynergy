@@ -59,7 +59,7 @@ export function SearchModal() {
       {/* Trigger button */}
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-md border border-white/15 px-3 py-1.5 text-sm text-white/60 hover:border-cyan/60 hover:text-white transition-colors"
+        className="pressable flex items-center gap-2 rounded-md border border-white/15 px-3 py-1.5 text-sm text-white/60 hover:border-cyan/60 hover:text-white"
         aria-label="Search"
       >
         <Search size={15} />

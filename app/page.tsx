@@ -5,16 +5,8 @@ import { Container } from "@/components/Container";
 import { ServiceIcon } from "@/components/ServiceIcon";
 import { ProductCard } from "@/components/ProductCard";
 import { HeroCarousel, HeroSlide } from "@/components/HeroCarousel";
+import { Eyebrow } from "@/components/Eyebrow";
 import { getCategoryTree, getServices, getProductBySlug } from "@/lib/supabase/queries";
-
-// Clean, letter-spaced section eyebrow (no decorative ticks / mono)
-function Eyebrow({ label, className = "" }: { label: string; className?: string }) {
-  return (
-    <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${className}`}>
-      {label}
-    </p>
-  );
-}
 
 const featuredSlugs = ["vmc-850", "cnc-lathe-1020", "vmc-650", "rtm-u324"];
 

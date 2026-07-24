@@ -35,18 +35,22 @@ export function Header({ tree }: { tree: CategoryNode[] }) {
             const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
             return (
               <Link key={link.href} href={link.href}
-                className={`font-display text-sm tracking-wide transition-colors ${active ? "text-cyan" : "text-white/80 hover:text-white"}`}>
+                className={`border-b-2 pb-px font-display text-sm tracking-wide transition-colors ${
+                  active
+                    ? "border-cyan text-white"
+                    : "border-transparent text-white/80 hover:text-white"
+                }`}>
                 {link.label}
               </Link>
             );
           })}
-          <MegaMenu tree={tree} />
+          <MegaMenu tree={tree} active={pathname.startsWith("/products")} />
         </nav>
 
         <div className="flex items-center gap-2">
           <SearchModal />
           <button onClick={openDrawer}
-            className="relative inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-1.5 text-sm font-medium transition-colors hover:border-cyan hover:text-cyan"
+            className="pressable relative inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-1.5 text-sm font-medium hover:border-cyan hover:text-cyan"
             aria-label="Open quote request cart">
             <FileText size={15} />
             <span className="hidden sm:inline text-xs">Quote</span>
@@ -57,7 +61,7 @@ export function Header({ tree }: { tree: CategoryNode[] }) {
             )}
           </button>
           <button
-            className="inline-flex items-center justify-center rounded-md p-2 text-white lg:hidden"
+            className="pressable inline-flex items-center justify-center rounded-md p-2 text-white lg:hidden"
             onClick={() => setMobileOpen(v => !v)}
             aria-label="Toggle menu" aria-expanded={mobileOpen}>
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
@@ -67,7 +71,7 @@ export function Header({ tree }: { tree: CategoryNode[] }) {
 
       {/* Mobile nav */}
       {mobileOpen && (
-        <nav className="border-t border-graphite-light px-6 py-4 lg:hidden">
+        <nav className="menu-panel border-t border-graphite-light px-6 py-4 lg:hidden">
           <ul className="flex flex-col gap-3">
             {staticLinks.map(link => (
               <li key={link.href}>
