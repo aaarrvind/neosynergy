@@ -13,7 +13,7 @@ import { ProductGallery } from "@/components/ProductGallery";
 import {
   getCategoryTree, flattenTree, findNodeByPath, findNodeById,
   getProductsByCategory, getProductBySlug, getRelatedProducts,
-  getAllCategorySlugs, getAllProductSlugs
+  getAllCategorySlugs
 } from "@/lib/supabase/queries";
 import { company } from "@/lib/data/company";
 import { CategoryNode } from "@/lib/types";
@@ -21,19 +21,22 @@ import { CategoryNode } from "@/lib/types";
 // Re-render from Supabase every 5 minutes so admin edits reach the public site
 export const revalidate = 300;
 
-// Build all static paths at build time
+// Paths not listed below still render — on first request, then cached by ISR
+export const dynamicParams = true;
+
+// Prerender the catalog index and the category tree only. Categories are a
+// bounded set and are the main entry points, so they stay fast from the first
+// hit. Product pages are deliberately left out: prerendering every one of them
+// makes `next build` scale with catalog size (tens of thousands of products
+// would mean unworkable build times), and with `dynamicParams` they render on
+// first request and are cached from then on.
 export async function generateStaticParams() {
-  const [catPaths, prodPaths] = await Promise.all([
-    getAllCategorySlugs(),
-    getAllProductSlugs(),
-  ]);
+  const catPaths = await getAllCategorySlugs();
   return [
     // /products (no slug)
     { slug: undefined },
     // category pages: /products/machine-tools/cnc-lathes etc
     ...catPaths.map(c => ({ slug: c.category })),
-    // product pages: /products/machine-tools/cnc-lathes/cnc-lathe-1020
-    ...prodPaths.map(p => ({ slug: [...p.category, p.slug] })),
   ];
 }
 

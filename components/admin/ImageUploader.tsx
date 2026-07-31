@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { Upload, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { IMAGE_CACHE_CONTROL } from "@/lib/supabase/storage";
 
 interface ImageUploaderProps {
   value: string;
@@ -21,7 +22,13 @@ export function ImageUploader({ value, onChange, folder = "products" }: ImageUpl
     const supabase = createClient();
     const ext = file.name.split(".").pop();
     const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("images").upload(path, file, { upsert: false });
+    // Filenames are unique per upload, so the object is immutable — cache it
+    // for a year. Without this Supabase serves `no-cache`, which forces the
+    // image CDN to re-fetch the original on every revalidation and turns
+    // storage egress into a recurring cost.
+    const { error: upErr } = await supabase.storage
+      .from("images")
+      .upload(path, file, { upsert: false, cacheControl: IMAGE_CACHE_CONTROL });
     if (upErr) { setError(upErr.message); setUploading(false); return; }
     const { data } = supabase.storage.from("images").getPublicUrl(path);
     onChange(data.publicUrl);

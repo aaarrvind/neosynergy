@@ -6,6 +6,7 @@ import { AdminFormField, AdminTextareaField } from "./AdminFormField";
 import { SpecBuilder, SpecGroupDraft } from "./SpecBuilder";
 import { ParentPicker } from "./ParentPicker";
 import { DbProduct, DbSpecGroup, DbSpecRow, DbProductImage } from "@/lib/supabase/db-types";
+import { IMAGE_CACHE_CONTROL } from "@/lib/supabase/storage";
 import { CategoryNode } from "@/lib/types";
 import { Plus, X, Trash2, Upload, GripVertical } from "lucide-react";
 import Image from "next/image";
@@ -91,7 +92,10 @@ export function ProductForm({ existing, existingGroups = [], existingRows = [], 
     const supabase = createClient();
     const ext = file.name.split(".").pop();
     const path = `products/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("images").upload(path, file);
+    // Immutable filename, so cache for a year — see IMAGE_CACHE_CONTROL
+    const { error: upErr } = await supabase.storage
+      .from("images")
+      .upload(path, file, { cacheControl: IMAGE_CACHE_CONTROL });
     if (!upErr) {
       const { data } = supabase.storage.from("images").getPublicUrl(path);
       const publicUrl = data.publicUrl;

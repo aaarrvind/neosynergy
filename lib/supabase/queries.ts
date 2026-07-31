@@ -260,21 +260,24 @@ export async function getProductsByCategory(categoryId: string): Promise<Product
 
     const pids = (prods as DbProduct[]).map(p => p.id);
 
-    const [{ data: groups }, { data: rows }, { data: imgs }] = await Promise.all([
+    const [{ data: groups }, { data: imgs }] = await Promise.all([
       supabase.from("spec_groups").select("*").in("product_id", pids).order("sort_order"),
-      supabase.from("spec_rows").select("*").order("sort_order"),
       supabase.from("product_images").select("*").in("product_id", pids).order("sort_order"),
     ]);
 
+    // Scope spec rows to this category's groups. Fetching the whole table and
+    // filtering in JS works at small volumes but transfers the entire spec_rows
+    // table on every render as the catalog grows.
     const groupIds = (groups as DbSpecGroup[] ?? []).map(g => g.id);
-    const filteredRows = (rows as DbSpecRow[] ?? []).filter(r =>
-      groupIds.includes(r.spec_group_id)
-    );
+    const { data: rows } = groupIds.length > 0
+      ? await supabase.from("spec_rows").select("*").in("spec_group_id", groupIds).order("sort_order")
+      : { data: [] };
+    const specRows = (rows as DbSpecRow[] ?? []);
 
     return (prods as DbProduct[]).map(p => {
       const pGroups = (groups as DbSpecGroup[] ?? []).filter(g => g.product_id === p.id);
       const gIds = new Set(pGroups.map(g => g.id));
-      const pRows = filteredRows.filter(r => gIds.has(r.spec_group_id));
+      const pRows = specRows.filter(r => gIds.has(r.spec_group_id));
       const pImgs = (imgs as DbProductImage[] ?? []).filter(i => i.product_id === p.id);
       return mapProduct(p, node.pathSlugs, pGroups, pRows, pImgs);
     });
