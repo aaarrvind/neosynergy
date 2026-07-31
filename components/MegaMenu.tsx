@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
-import { ChevronRight, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { CategoryNode } from "@/lib/types";
 
 interface Props {
@@ -10,27 +10,62 @@ interface Props {
   active?: boolean;
 }
 
+const href = (node: CategoryNode) => `/products/${node.pathSlugs.join("/")}`;
+
+interface MenuColumn {
+  key: string;
+  name: string;
+  href: string;
+  items: CategoryNode[];
+}
+
 export function MegaMenu({ tree, active = false }: Props) {
   const [open, setOpen] = useState(false);
-  const [activeL1, setActiveL1] = useState<string | null>(null);
-  const [activeL2, setActiveL2] = useState<string | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scheduleClose = useCallback(() => {
-    closeTimer.current = setTimeout(() => {
-      setOpen(false);
-      setActiveL1(null);
-      setActiveL2(null);
-    }, 150);
+    closeTimer.current = setTimeout(() => setOpen(false), 150);
   }, []);
 
   const cancelClose = useCallback(() => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
   }, []);
 
-  const l1 = tree;
-  const l2 = activeL1 ? (l1.find(n => n.id === activeL1)?.children ?? []) : [];
-  const l3 = activeL2 ? (l2.find(n => n.id === activeL2)?.children ?? []) : [];
+  const close = useCallback(() => setOpen(false), []);
+
+  // Every category is visible at once rather than hidden behind hover
+  // drill-down. Each second-level category that has children becomes a titled
+  // column. Second-level categories with no children would otherwise render as
+  // a heading above empty space, so they are collected into one catch-all column
+  // per root — they are browsable leaves, the same role the listed children play.
+  const columns: MenuColumn[] = tree.flatMap((root) => {
+    const parents = root.children.filter((c) => c.children.length > 0);
+    const leaves = root.children.filter((c) => c.children.length === 0);
+
+    const cols: MenuColumn[] = parents.map((c) => ({
+      key: c.id,
+      name: c.name,
+      href: href(c),
+      items: c.children,
+    }));
+
+    if (leaves.length > 0) {
+      cols.push({
+        key: `${root.id}__leaves`,
+        // If nothing under this root has children, the bundle *is* the root
+        name: parents.length === 0 ? root.name : `More ${root.name}`,
+        href: href(root),
+        items: leaves,
+      });
+    }
+
+    // Root with no children at all still deserves an entry
+    if (root.children.length === 0) {
+      cols.push({ key: root.id, name: root.name, href: href(root), items: [] });
+    }
+
+    return cols;
+  });
 
   return (
     <div
@@ -40,14 +75,14 @@ export function MegaMenu({ tree, active = false }: Props) {
     >
       {/* Trigger */}
       <button
-        className={`flex items-center gap-1 border-b-2 pb-px font-display text-sm tracking-wide transition-colors ${
+        className={`flex items-center gap-1 border-b-2 pb-px font-display text-sm font-medium tracking-wide transition-colors ${
           active
             ? "border-cyan text-white"
-            : "border-transparent text-white/80 hover:text-white"
+            : "border-transparent text-white/70 hover:text-white"
         }`}
         aria-expanded={open}
         aria-haspopup="true"
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen((v) => !v)}
       >
         Products
         <ChevronDown
@@ -62,122 +97,59 @@ export function MegaMenu({ tree, active = false }: Props) {
           Keep in sync if those bar heights change in Header.tsx. */}
       {open && (
         <div
-          className="menu-panel fixed left-0 right-0 top-[102px] z-40 bg-graphite border-t border-white/10 shadow-2xl"
+          className="menu-panel fixed left-0 right-0 top-[102px] z-40 max-h-[calc(100vh-102px)] overflow-y-auto border-t border-white/10 bg-graphite shadow-2xl"
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
         >
-          <div className="mx-auto max-w-container px-6 py-6 lg:px-8">
-            <div className="flex gap-0">
-              {/* Level 1 */}
-              <div className="w-56 flex-shrink-0 border-r border-white/10 pr-4">
-                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-white/40 mb-3">Categories</p>
-                <ul className="flex flex-col gap-0.5">
-                  {l1.map(node => (
-                    <li key={node.id}>
-                      <Link
-                        href={`/products/${node.pathSlugs.join("/")}`}
-                        className={`group flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors ${activeL1 === node.id ? "bg-white/10 text-cyan" : "text-white/70 hover:bg-white/5 hover:text-white"}`}
-                        onMouseEnter={() => { setActiveL1(node.id); setActiveL2(null); }}
-                        onClick={() => setOpen(false)}
-                      >
-                        <span>{node.name}</span>
-                        {node.children.length > 0 && (
-                          <ChevronRight size={13} className="opacity-50 group-hover:opacity-100" />
-                        )}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-4 pt-4 border-t border-white/10">
+          <div className="mx-auto max-w-container px-6 py-10 lg:px-8">
+            <div className="grid grid-cols-2 gap-x-10 gap-y-9 md:grid-cols-3 lg:grid-cols-4">
+              {columns.map((col) => (
+                <div key={col.key}>
                   <Link
-                    href="/products"
-                    onClick={() => setOpen(false)}
-                    className="text-xs text-cyan hover:underline"
+                    href={col.href}
+                    onClick={close}
+                    className="block border-b border-white/25 pb-2.5 font-display text-sm font-semibold uppercase tracking-[0.1em] text-white transition-colors hover:text-cyan"
                   >
-                    View all products →
+                    {col.name}
                   </Link>
+                  {col.items.length > 0 && (
+                    <ul className="mt-4 flex flex-col gap-2.5">
+                      {col.items.map((child) => (
+                        <li key={child.id}>
+                          <Link
+                            href={href(child)}
+                            onClick={close}
+                            className="block text-sm leading-snug text-white/65 transition-colors hover:text-white"
+                          >
+                            {child.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-              </div>
+              ))}
+            </div>
 
-              {/* Level 2 */}
-              {l2.length > 0 && (
-                <div className="w-56 flex-shrink-0 border-r border-white/10 px-4">
-                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-white/40 mb-3">
-                    {l1.find(n => n.id === activeL1)?.name}
-                  </p>
-                  <ul className="flex flex-col gap-0.5">
-                    {l2.map(node => (
-                      <li key={node.id}>
-                        <Link
-                          href={`/products/${node.pathSlugs.join("/")}`}
-                          className={`group flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors ${activeL2 === node.id ? "bg-white/10 text-cyan" : "text-white/70 hover:bg-white/5 hover:text-white"}`}
-                          onMouseEnter={() => setActiveL2(node.id)}
-                          onClick={() => setOpen(false)}
-                        >
-                          <span>{node.name}</span>
-                          {node.children.length > 0 && (
-                            <ChevronRight size={13} className="opacity-50 group-hover:opacity-100" />
-                          )}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Level 3 */}
-              {l3.length > 0 && (
-                <div className="w-56 flex-shrink-0 border-r border-white/10 px-4">
-                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-white/40 mb-3">
-                    {l2.find(n => n.id === activeL2)?.name}
-                  </p>
-                  <ul className="flex flex-col gap-0.5">
-                    {l3.map(node => (
-                      <li key={node.id}>
-                        <Link
-                          href={`/products/${node.pathSlugs.join("/")}`}
-                          className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors"
-                          onClick={() => setOpen(false)}
-                        >
-                          <span>{node.name}</span>
-                          {node.children.length > 0 && (
-                            <ChevronRight size={13} className="opacity-50" />
-                          )}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Featured / description panel */}
-              <div className="flex-1 pl-6">
-                {activeL1 && (() => {
-                  const active = activeL2
-                    ? l2.find(n => n.id === activeL2)
-                    : l1.find(n => n.id === activeL1);
-                  if (!active) return null;
-                  return (
-                    <div className="flex flex-col gap-3">
-                      <h3 className="font-display text-lg font-semibold text-white">{active.name}</h3>
-                      <p className="text-sm text-white/60 leading-relaxed max-w-xs">{active.intro}</p>
-                      {active.heroImage && (
-                        <div
-                          className="mt-2 h-36 w-full max-w-xs rounded-lg bg-cover bg-center opacity-60"
-                          style={{ backgroundImage: `url(${active.heroImage})` }}
-                        />
-                      )}
-                      <Link
-                        href={`/products/${active.pathSlugs.join("/")}`}
-                        onClick={() => setOpen(false)}
-                        className="text-xs text-cyan hover:underline"
-                      >
-                        Browse {active.shortName} →
-                      </Link>
-                    </div>
-                  );
-                })()}
-              </div>
+            {/* Footer: top-level entry points */}
+            <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-white/10 pt-6">
+              {tree.map((root) => (
+                <Link
+                  key={root.id}
+                  href={href(root)}
+                  onClick={close}
+                  className="text-sm font-medium text-white/70 transition-colors hover:text-white"
+                >
+                  All {root.name}
+                </Link>
+              ))}
+              <Link
+                href="/products"
+                onClick={close}
+                className="text-sm font-semibold text-cyan transition-colors hover:text-white"
+              >
+                View all products
+              </Link>
             </div>
           </div>
         </div>
