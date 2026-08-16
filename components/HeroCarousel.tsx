@@ -76,8 +76,8 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
           </div>
         ))}
         {/* Legibility scrim — dark on the left where the copy sits */}
-        <div className="absolute inset-0 bg-gradient-to-r from-graphite via-graphite/80 to-graphite/25" />
-        <div className="absolute inset-0 bg-graphite/20" />
+        {/* <div className="absolute inset-0 bg-gradient-to-r from-graphite via-graphite/80 to-graphite/25" />
+        <div className="absolute inset-0 bg-graphite/20" /> */}
       </div>
 
       <Container className="relative flex min-h-[34rem] flex-col justify-center py-20 lg:min-h-[40rem] lg:py-28">

@@ -3,7 +3,7 @@ export const company = {
   shortName: "Neo Synergy",
   tagline: "Building machines for a better tomorrow",
   city: "Dubai, United Arab Emirates",
-  phones: ["+971 55 629 9931", "+971 50 171 3253"],
+  phones: ["+971 4 251 0789"],
   emails: ["sales@neosynergy.ae", "info@neosynergy.ae"],
   website: "https://www.neosynergy.ae",
   intro:

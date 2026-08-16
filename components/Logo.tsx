@@ -12,7 +12,13 @@ export function Logo({ variant = "header" }: { variant?: "header" | "footer" }) 
         priority={variant === "header"}
       />
       <span className="flex flex-col leading-tight">
-        <span className="font-display text-lg font-bold tracking-wide text-white">
+        {/* The header is light and the footer is dark, so the wordmark
+            follows the variant rather than assuming a dark background */}
+        <span
+          className={`font-display text-lg font-bold tracking-wide ${
+            variant === "header" ? "text-graphite" : "text-white"
+          }`}
+        >
           SYNERGY
         </span>
         {variant === "footer" && (

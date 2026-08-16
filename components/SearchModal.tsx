@@ -59,12 +59,12 @@ export function SearchModal() {
       {/* Trigger button */}
       <button
         onClick={() => setOpen(true)}
-        className="pressable flex items-center gap-2 rounded-md border border-white/15 px-3 py-1.5 text-sm text-white/60 hover:border-cyan/60 hover:text-white"
+        className="pressable flex items-center gap-2 rounded-md border border-steel-200 px-3 py-1.5 text-sm text-graphite/60 hover:border-cyan hover:text-graphite"
         aria-label="Search"
       >
         <Search size={15} />
         <span className="hidden sm:inline text-xs">Search</span>
-        <kbd className="hidden sm:inline text-[10px] border border-white/20 rounded px-1 py-0.5 font-mono">⌘K</kbd>
+        <kbd className="hidden sm:inline text-[10px] border border-steel-200 text-graphite/45 rounded px-1 py-0.5 font-mono">⌘K</kbd>
       </button>
 
       {/* Overlay */}

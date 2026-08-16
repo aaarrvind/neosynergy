@@ -271,7 +271,7 @@ export default async function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="bg-graphite py-20 text-white lg:py-24">
+      <section className="bg-transparent py-20 text-graphite lg:py-24">
         <Container>
           <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
@@ -279,7 +279,7 @@ export default async function HomePage() {
               <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl">
                 Ready to get a quotation?
               </h2>
-              <p className="mt-4 max-w-xl text-white/70">
+              <p className="mt-4 max-w-xl text-graphite/70">
                 Add the machines and accessories you need to your quote request, and our
                 team will respond with pricing, availability, and lead times.
               </p>
@@ -293,7 +293,7 @@ export default async function HomePage() {
               </Link>
               <Link
                 href="/contact"
-                className="pressable inline-flex items-center rounded border border-white/40 px-6 py-3 text-sm font-semibold text-white hover:bg-white hover:text-graphite"
+                className="pressable inline-flex items-center rounded border border-graphite/40 px-6 py-3 text-sm font-semibold text-graphite hover:bg-graphite hover:text-white"
               >
                 Talk to our team
               </Link>

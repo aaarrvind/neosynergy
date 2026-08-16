@@ -7,11 +7,11 @@ import { Logo } from "./Logo";
 export function Footer({ tree }: { tree: CategoryNode[] }) {
   return (
     <footer className="bg-graphite text-white/80">
-      <div className="mx-auto max-w-container px-6 py-12 lg:px-8">
+      <div className="mx-auto max-w-container px-6 py-5 lg:px-8">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <Logo variant="footer" />
-            <p className="mt-4 text-sm leading-relaxed text-white/60">{company.intro}</p>
+            {/* <p className="mt-4 text-sm leading-relaxed text-white/60">{company.intro}</p> */}
           </div>
 
           <div>
@@ -59,7 +59,7 @@ export function Footer({ tree }: { tree: CategoryNode[] }) {
             </ul>
           </div>
         </div>
-        <div className="mt-10 border-t border-white/10 pt-6 text-xs text-white/30">
+        <div className="mt-4 border-t border-white/10 pt-6 text-xs text-white/30">
           © {new Date().getFullYear()} {company.name}. All rights reserved.
         </div>
       </div>

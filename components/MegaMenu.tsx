@@ -77,8 +77,8 @@ export function MegaMenu({ tree, active = false }: Props) {
       <button
         className={`flex items-center gap-1 border-b-2 pb-px font-display text-sm font-medium tracking-wide transition-colors ${
           active
-            ? "border-cyan text-white"
-            : "border-transparent text-white/70 hover:text-white"
+            ? "border-cyan text-graphite"
+            : "border-transparent text-graphite/60 hover:text-graphite"
         }`}
         aria-expanded={open}
         aria-haspopup="true"
@@ -97,7 +97,7 @@ export function MegaMenu({ tree, active = false }: Props) {
           Keep in sync if those bar heights change in Header.tsx. */}
       {open && (
         <div
-          className="menu-panel fixed left-0 right-0 top-[102px] z-40 max-h-[calc(100vh-102px)] overflow-y-auto border-t border-white/10 bg-graphite shadow-2xl"
+          className="menu-panel fixed left-0 right-0 top-[102px] z-40 max-h-[calc(100vh-102px)] overflow-y-auto border-t border-steel-100 bg-white shadow-xl"
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
         >
@@ -108,7 +108,7 @@ export function MegaMenu({ tree, active = false }: Props) {
                   <Link
                     href={col.href}
                     onClick={close}
-                    className="block border-b border-white/25 pb-2.5 font-display text-sm font-semibold uppercase tracking-[0.1em] text-white transition-colors hover:text-cyan"
+                    className="block border-b border-steel-200 pb-2.5 font-display text-sm font-semibold uppercase tracking-[0.1em] text-graphite transition-colors hover:text-cyan-deep"
                   >
                     {col.name}
                   </Link>
@@ -119,7 +119,7 @@ export function MegaMenu({ tree, active = false }: Props) {
                           <Link
                             href={href(child)}
                             onClick={close}
-                            className="block text-sm leading-snug text-white/65 transition-colors hover:text-white"
+                            className="block text-sm leading-snug text-graphite/60 transition-colors hover:text-graphite"
                           >
                             {child.name}
                           </Link>
@@ -132,13 +132,13 @@ export function MegaMenu({ tree, active = false }: Props) {
             </div>
 
             {/* Footer: top-level entry points */}
-            <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-white/10 pt-6">
+            <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-steel-100 pt-6">
               {tree.map((root) => (
                 <Link
                   key={root.id}
                   href={href(root)}
                   onClick={close}
-                  className="text-sm font-medium text-white/70 transition-colors hover:text-white"
+                  className="text-sm font-medium text-graphite/60 transition-colors hover:text-graphite"
                 >
                   All {root.name}
                 </Link>
@@ -146,7 +146,7 @@ export function MegaMenu({ tree, active = false }: Props) {
               <Link
                 href="/products"
                 onClick={close}
-                className="text-sm font-semibold text-cyan transition-colors hover:text-white"
+                className="text-sm font-semibold text-cyan-deep transition-colors hover:text-graphite"
               >
                 View all products
               </Link>
