@@ -96,51 +96,28 @@ function mapProduct(
 }
 
 // ---------------------------------------------------------------
-// Static fallbacks (used when Supabase is not yet configured)
+// Degraded-mode behaviour
 // ---------------------------------------------------------------
-// Static fallbacks
-import { categories as staticCategories } from "../data/categories";
-import { products as staticProducts, products } from "../data/products";
+// The catalog lives entirely in Supabase. There is deliberately NO hard-coded
+// catalog to fall back on: a stale copy drifts out of sync with the database
+// and, on a transient Supabase error, would serve a plausible-looking catalog
+// full of URLs that 404 — worse than serving nothing, because nothing is
+// visibly broken and so nobody fixes it.
+//
+// Instead, a failed read returns empty and logs loudly. Pages are rendered with
+// ISR, so a revalidation failure keeps the last good page in the CDN cache;
+// empty results only surface on a genuinely cold render while Supabase is down.
+//
+// Services are the exception: a short, slow-changing list that ships with the
+// app, so the static copy stays a truthful fallback.
 import { services as staticServices } from "../data/services";
 
-function staticCategoryToNode(c: { slug: string; name: string; shortName: string; intro: string; description: string[]; heroImage: string; metaDescription: string }): CategoryNode {
-  return {
-    id: c.slug,
-    parentId: null,
-    slug: c.slug,
-    name: c.name,
-    shortName: c.shortName,
-    intro: c.intro,
-    description: c.description,
-    heroImage: c.heroImage,
-    metaDescription: c.metaDescription,
-    sortOrder: 0,
-    depth: 0,
-    pathIds: [c.slug],
-    pathSlugs: [c.slug],
-    pathNames: [c.name],
-    children: [],
-  };
-}
+/** Last tree that loaded successfully — keeps site navigation alive through a blip. */
+let _lastGoodTree: CategoryNode[] | null = null;
 
-function getStaticFlatCategories(): CategoryNode[] {
-  return (staticCategories as unknown as { slug: string; name: string; shortName: string; intro: string; description: string[]; heroImage: string; metaDescription: string }[]).map(c => ({
-    id: c.slug,
-    parentId: null,
-    slug: c.slug,
-    name: c.name,
-    shortName: c.shortName,
-    intro: c.intro,
-    description: c.description,
-    heroImage: c.heroImage,
-    metaDescription: c.metaDescription,
-    sortOrder: 0,
-    depth: 0,
-    pathIds: [c.slug],
-    pathSlugs: [c.slug],
-    pathNames: [c.name],
-    children: [],
-  }));
+function degraded<T>(fn: string, err: unknown, empty: T): T {
+  console.error(`[queries] ${fn} failed — serving empty result:`, err);
+  return empty;
 }
 
 // ---------------------------------------------------------------
@@ -156,7 +133,10 @@ export async function getCategoryTree(): Promise<CategoryNode[]> {
     return _treeCache.data;
   }
 
-  if (!isSupabaseConfigured()) return getStaticFlatCategories();
+  if (!isSupabaseConfigured()) {
+    console.warn("[queries] Supabase is not configured — the catalog will be empty.");
+    return [];
+  }
 
   try {
     const supabase = createPublicSupabaseClient();
@@ -164,10 +144,13 @@ export async function getCategoryTree(): Promise<CategoryNode[]> {
     if (error || !data) throw error ?? new Error("empty result");
     const tree = buildTree(data as CategoryRow[]);
     _treeCache = { data: tree, ts: Date.now() };
+    _lastGoodTree = tree;
     return tree;
   } catch (err) {
-    console.error("[queries] getCategoryTree failed:", err);
-    return getStaticFlatCategories();
+    // The tree drives the header and footer on every page, so prefer a stale
+    // copy from this process over an empty nav. Both are honest; neither
+    // invents categories that do not exist.
+    return degraded("getCategoryTree", err, _lastGoodTree ?? []);
   }
 }
 
@@ -211,38 +194,8 @@ export async function getAllCategorySlugs(): Promise<{ category: string[] }[]> {
 // PRODUCTS
 // ---------------------------------------------------------------
 
-type StaticProduct = {
-  slug: string; categorySlug: string; name: string; tagline: string;
-  description: string[]; image: string; variants?: string[];
-  specGroups?: SpecGroup[]; standardEquipment?: string[]; keywords: string[];
-};
-
-function staticProductToProduct(p: StaticProduct): Product {
-  return {
-    id: p.slug,
-    slug: p.slug,
-    categoryId: p.categorySlug,
-    categorySlug: p.categorySlug,
-    categoryPath: [p.categorySlug],
-    name: p.name,
-    tagline: p.tagline,
-    description: p.description,
-    image: p.image,
-    variants: p.variants,
-    specGroups: p.specGroups,
-    standardEquipment: p.standardEquipment,
-    keywords: p.keywords,
-  };
-}
-
-function getStaticProductsByCategory(categoryId: string): Product[] {
-  return (staticProducts as unknown as StaticProduct[])
-    .filter(p => p.categorySlug === categoryId)
-    .map(staticProductToProduct);
-}
-
 export async function getProductsByCategory(categoryId: string): Promise<Product[]> {
-  if (!isSupabaseConfigured()) return getStaticProductsByCategory(categoryId);
+  if (!isSupabaseConfigured()) return [];
 
   try {
     const supabase = createPublicSupabaseClient();
@@ -282,18 +235,12 @@ export async function getProductsByCategory(categoryId: string): Promise<Product
       return mapProduct(p, node.pathSlugs, pGroups, pRows, pImgs);
     });
   } catch (err) {
-    console.error("[queries] getProductsByCategory failed:", err);
-    return getStaticProductsByCategory(categoryId);
+    return degraded("getProductsByCategory", err, []);
   }
 }
 
-function getStaticProductBySlug(slug: string): Product | undefined {
-  const sp = (staticProducts as unknown as StaticProduct[]).find(p => p.slug === slug);
-  return sp ? staticProductToProduct(sp) : undefined;
-}
-
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {
-  if (!isSupabaseConfigured()) return getStaticProductBySlug(slug);
+  if (!isSupabaseConfigured()) return undefined;
 
   try {
     const supabase = createPublicSupabaseClient();
@@ -323,8 +270,9 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
 
     return mapProduct(prod, pathSlugs, groups as DbSpecGroup[] ?? [], rows as DbSpecRow[] ?? [], imgs as DbProductImage[] ?? []);
   } catch (err) {
-    console.error("[queries] getProductBySlug failed:", err);
-    return getStaticProductBySlug(slug);
+    // undefined renders the 404 page. A blip therefore shows "not found"
+    // rather than a stale product whose specs may no longer be accurate.
+    return degraded("getProductBySlug", err, undefined);
   }
 }
 
@@ -375,15 +323,8 @@ export async function getRelatedProducts(product: Product, limit = 4): Promise<P
     .slice(0, limit);
 }
 
-function getStaticProductSlugs(): { slug: string; category: string[] }[] {
-  return (staticProducts as unknown as StaticProduct[]).map(p => ({
-    slug: p.slug,
-    category: [p.categorySlug],
-  }));
-}
-
 export async function getAllProductSlugs(): Promise<{ slug: string; category: string[] }[]> {
-  if (!isSupabaseConfigured()) return getStaticProductSlugs();
+  if (!isSupabaseConfigured()) return [];
 
   try {
     const supabase = createPublicSupabaseClient();
@@ -397,8 +338,8 @@ export async function getAllProductSlugs(): Promise<{ slug: string; category: st
       return { slug: r.slug, category: node?.pathSlugs ?? [] };
     });
   } catch (err) {
-    console.error("[queries] getAllProductSlugs failed:", err);
-    return getStaticProductSlugs();
+    // Feeds the sitemap. Emitting nothing is better than emitting URLs that 404.
+    return degraded("getAllProductSlugs", err, []);
   }
 }
 
@@ -427,38 +368,18 @@ export async function getServices(): Promise<Service[]> {
 // ---------------------------------------------------------------
 // SEARCH
 // ---------------------------------------------------------------
-function staticSearch(query: string): SearchResult[] {
-  const q = query.toLowerCase();
-  const prods: SearchResult[] = (staticProducts as unknown as StaticProduct[])
-    .filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      p.tagline.toLowerCase().includes(q) ||
-      (p.keywords ?? []).some(k => k.toLowerCase().includes(q))
-    )
-    .map(p => ({
-      type: "product" as const, id: p.slug, name: p.name, tagline: p.tagline,
-      image: p.image, slug: p.slug, path_slugs: [p.categorySlug],
-    }));
-  const cats: SearchResult[] = getStaticFlatCategories()
-    .filter(c => c.name.toLowerCase().includes(q) || c.intro.toLowerCase().includes(q))
-    .map(c => ({
-      type: "category" as const, id: c.id, name: c.name, tagline: c.intro,
-      image: c.heroImage, slug: c.slug, path_slugs: c.pathSlugs,
-    }));
-  return [...prods, ...cats].slice(0, 20);
-}
-
 export async function searchCatalog(query: string): Promise<SearchResult[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
-  if (!isSupabaseConfigured()) return staticSearch(trimmed);
+  if (!isSupabaseConfigured()) return [];
   try {
     const supabase = createPublicSupabaseClient();
     const { data, error } = await supabase.rpc("search_catalog", { query: trimmed });
     if (error || !data) throw error ?? new Error("empty result");
     return data as SearchResult[];
   } catch (err) {
-    console.error("[queries] searchCatalog failed:", err);
-    return staticSearch(trimmed);
+    // "No results" is the honest answer when the index is unreachable —
+    // a keyword match against a stale copy would link to URLs that 404.
+    return degraded("searchCatalog", err, [] as SearchResult[]);
   }
 }

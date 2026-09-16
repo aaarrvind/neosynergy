@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -21,7 +23,13 @@ export const metadata: Metadata = {
     siteName: company.shortName,
     locale: "en_AE",
     type: "website",
-    images: ["/images/hero-robot-sparks.jpg"],
+    // No `images` here on purpose: app/opengraph-image.tsx generates the card,
+    // and an explicit value at this level would override that file convention.
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${company.shortName} | Machinery Trading, Dubai UAE`,
+    description: company.intro,
   },
   alternates: { canonical: "/" },
 };
@@ -63,6 +71,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Footer tree={tree} />
           <CartDrawer />
         </CartProvider>
+        {/* Cookieless, so no consent banner is required and the claim in
+            /privacy that we set no analytics cookies stays true. Both are
+            inert outside Vercel, so local and self-hosted runs are unaffected.
+            Deliberately outside the admin branch above — staff page views
+            would skew the client's traffic figures. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

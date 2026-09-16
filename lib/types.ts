@@ -94,17 +94,3 @@ export interface SearchResult {
   slug: string;
   path_slugs: string[];
 }
-
-// ---------------------------------------------------------------
-// Legacy Category interface — used by static fallback data files
-// ---------------------------------------------------------------
-export interface Category {
-  slug: string;
-  name: string;
-  shortName: string;
-  intro: string;
-  description: string[];
-  heroImage: string;
-  metaDescription: string;
-  catalogItems?: { name: string; description: string; image?: string }[];
-}

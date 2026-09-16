@@ -75,9 +75,19 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
             />
           </div>
         ))}
-        {/* Legibility scrim — dark on the left where the copy sits */}
-        {/* <div className="absolute inset-0 bg-gradient-to-r from-graphite via-graphite/80 to-graphite/25" />
-        <div className="absolute inset-0 bg-graphite/20" /> */}
+        {/* Legibility scrim. Deliberately narrower than a full-width wash: it
+            is opaque only across the left column where the copy sits and is
+            gone by ~70%, so the machine stays visible on the right. The second
+            layer lifts the bottom edge so the slide dots and CTAs hold
+            contrast against a bright floor or workpiece. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-gradient-to-r from-graphite/95 via-graphite/70 via-40% to-transparent to-70%"
+        />
+        <div
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-graphite/60 to-transparent"
+        />
       </div>
 
       <Container className="relative flex min-h-[34rem] flex-col justify-center py-20 lg:min-h-[40rem] lg:py-28">

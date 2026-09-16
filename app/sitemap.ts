@@ -19,6 +19,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/services`, lastModified: now, changeFrequency: "yearly", priority: 0.7 },
     { url: `${base}/products`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${base}/contact`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
+    { url: `${base}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${base}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
   ];
 
   const categoryRoutes: MetadataRoute.Sitemap = flattenTree(tree).map(node => ({

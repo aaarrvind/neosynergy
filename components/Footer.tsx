@@ -59,8 +59,14 @@ export function Footer({ tree }: { tree: CategoryNode[] }) {
             </ul>
           </div>
         </div>
-        <div className="mt-4 border-t border-white/10 pt-6 text-xs text-white/30">
-          © {new Date().getFullYear()} {company.name}. All rights reserved.
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-t border-white/10 pt-6 text-xs text-white/30">
+          <p>
+            © {new Date().getFullYear()} {company.name}. All rights reserved.
+          </p>
+          <ul className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <li><Link href="/privacy" className="hover:text-cyan">Privacy Policy</Link></li>
+            <li><Link href="/terms" className="hover:text-cyan">Terms of Use</Link></li>
+          </ul>
         </div>
       </div>
     </footer>
