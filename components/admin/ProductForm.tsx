@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { AdminFormField, AdminTextareaField } from "./AdminFormField";
+import { AdminFormField, AdminTextareaField, AdminCheckboxField } from "./AdminFormField";
 import { SpecBuilder, SpecGroupDraft } from "./SpecBuilder";
 import { ParentPicker } from "./ParentPicker";
 import { DbProduct, DbSpecGroup, DbSpecRow, DbProductImage } from "@/lib/supabase/db-types";
@@ -38,6 +38,8 @@ export function ProductForm({ existing, existingGroups = [], existingRows = [], 
   const [desc2, setDesc2] = useState(Array.isArray(existing?.description) ? (existing.description[1] ?? "") : "");
   const [heroImage, setHeroImage] = useState(existing?.image ?? "");
   const [sortOrder, setSortOrder] = useState(String(existing?.sort_order ?? 0));
+  const [isFeatured, setIsFeatured] = useState(existing?.is_featured ?? false);
+  const [featuredSort, setFeaturedSort] = useState(String(existing?.featured_sort ?? 0));
   const [keywords, setKeywords] = useState((existing?.keywords as string[] ?? []).join(", "));
   const [variants, setVariants] = useState<string[]>((existing?.variants as string[] ?? []));
   const [newVariant, setNewVariant] = useState("");
@@ -244,6 +246,10 @@ export function ProductForm({ existing, existingGroups = [], existingRows = [], 
       description: [desc1, desc2].filter(Boolean),
       image: resolvedImage,
       sort_order: parseInt(sortOrder) || 0,
+      is_featured: isFeatured,
+      // Keep the stored order meaningful even if the box is unticked, so
+      // re-featuring a product restores its previous position.
+      featured_sort: parseInt(featuredSort) || 0,
       keywords: keywords.split(",").map(k => k.trim()).filter(Boolean),
       variants: variants.length > 0 ? variants : null,
       standard_equipment: stdEquipment.trim()
@@ -439,6 +445,27 @@ export function ProductForm({ existing, existingGroups = [], existingRows = [], 
         placeholder="VMC 850, vertical machining centre Dubai, BT40 mill UAE" />
 
       <AdminFormField label="Sort order" name="sort_order" type="number" value={sortOrder} onChange={setSortOrder} />
+
+      {/* Homepage feature */}
+      <div className="flex flex-col gap-4 rounded-md border border-steel-200 bg-steel-50 p-4">
+        <AdminCheckboxField
+          label="Feature on the homepage"
+          name="is_featured"
+          checked={isFeatured}
+          onChange={setIsFeatured}
+          hint="Shows this product in the “Featured machines” section. The homepage displays the first 4."
+        />
+        {isFeatured && (
+          <AdminFormField
+            label="Featured position"
+            name="featured_sort"
+            type="number"
+            value={featuredSort}
+            onChange={setFeaturedSort}
+            hint="Lower numbers appear first. Ties are ordered by name."
+          />
+        )}
+      </div>
 
       {error && <p className="text-sm text-spark">{error}</p>}
 

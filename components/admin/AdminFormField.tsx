@@ -24,6 +24,32 @@ export function AdminFormField({ label, name, required, type = "text", value, on
   );
 }
 
+interface CheckboxProps {
+  label: string;
+  name: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  hint?: string;
+}
+
+export function AdminCheckboxField({ label, name, checked, onChange, hint }: CheckboxProps) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3">
+      <input
+        type="checkbox"
+        name={name}
+        checked={checked}
+        onChange={e => onChange(e.target.checked)}
+        className="mt-0.5 h-4 w-4 flex-shrink-0 cursor-pointer rounded border-steel-200 text-cyan-deep accent-cyan-deep focus:outline-none focus:ring-1 focus:ring-cyan"
+      />
+      <span className="flex flex-col gap-1">
+        <span className="text-sm font-medium text-graphite">{label}</span>
+        {hint && <span className="text-xs text-graphite/50">{hint}</span>}
+      </span>
+    </label>
+  );
+}
+
 interface TextareaProps {
   label: string;
   name: string;

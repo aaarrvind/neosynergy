@@ -25,6 +25,8 @@ export interface DbProduct {
   standard_equipment: string[] | null;
   keywords: string[];
   sort_order: number;
+  is_featured: boolean;
+  featured_sort: number;
   created_at: string;
   updated_at: string;
 }

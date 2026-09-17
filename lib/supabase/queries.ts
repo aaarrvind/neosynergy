@@ -277,6 +277,46 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
 }
 
 /**
+ * Curated "Featured machines" selection for the homepage, controlled by the
+ * is_featured / featured_sort columns from the admin product form.
+ *
+ * Cards do not render specs or galleries, so those are not fetched — the card
+ * only needs name, tagline, hero image, variants, and the category path that
+ * builds its href.
+ */
+export async function getFeaturedProducts(limit = 4): Promise<Product[]> {
+  if (!isSupabaseConfigured()) return [];
+
+  try {
+    const supabase = createPublicSupabaseClient();
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("is_featured", true)
+      .order("featured_sort")
+      .order("name")
+      .limit(limit);
+    if (error) throw error;
+
+    const prods = (data as DbProduct[]) ?? [];
+    if (prods.length === 0) {
+      // Not an error — but the homepage section will be empty, and silence is
+      // how the previous hard-coded list hid two dead slugs for so long.
+      console.warn("[queries] getFeaturedProducts: no products are marked as featured.");
+      return [];
+    }
+
+    const flat = flattenTree(await getCategoryTree());
+    return prods.map(p => {
+      const node = flat.find(n => n.id === p.category_id);
+      return mapProduct(p, node?.pathSlugs ?? [], [], [], []);
+    });
+  } catch (err) {
+    return degraded("getFeaturedProducts", err, []);
+  }
+}
+
+/**
  * Related products for a product page. Manually curated relations
  * (related_products table, admin-ordered) win; when none are curated —
  * or the table/query is unavailable — fall back to other products in

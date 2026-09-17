@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Star } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminTable } from "@/components/admin/AdminTable";
@@ -84,6 +85,12 @@ export default function AdminProductsPage() {
             { key: "name", label: "Name" },
             { key: "category_name", label: "Category" },
             { key: "slug", label: "Slug" },
+            // Makes the homepage selection visible without opening each product
+            { key: "is_featured", label: "Featured", render: row => row.is_featured
+              ? <span className="inline-flex items-center gap-1 rounded bg-cyan-50 px-1.5 py-0.5 text-xs font-medium text-cyan-deep">
+                  <Star size={11} className="fill-current" />{row.featured_sort}
+                </span>
+              : null },
             { key: "id", label: "Live", render: row => row.category_path.length > 0
               ? <Link href={`/products/${[...row.category_path, row.slug].join("/")}`} target="_blank"
                   className="text-cyan-deep hover:underline text-xs">↗</Link>

@@ -9,7 +9,6 @@ import { Container } from "./Container";
 export interface HeroSlide {
   key: string;
   image: string;
-  kicker: string;
   headlineTop: string;
   headlineAccent: string;
   subcopy: string;
@@ -102,7 +101,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
                 key={s.key}
                 role="group"
                 aria-roledescription="slide"
-                aria-label={s.kicker}
+                // aria-label={s.headlineTop + " " + s.headlineAccent}
                 aria-hidden={!isActive}
                 style={{ gridArea: "1 / 1" }}
                 className={`transition-[opacity,transform] [transition-timing-function:var(--ease-out-strong)] ${
@@ -111,9 +110,6 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
                     : "pointer-events-none translate-y-2 opacity-0 duration-200"
                 }`}
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan">
-                  {s.kicker}
-                </p>
                 <HeadTag className="mt-4 font-display text-4xl font-bold leading-[1.08] sm:text-5xl lg:text-[3.25rem]">
                   {s.headlineTop} {s.headlineAccent}
                 </HeadTag>
@@ -148,7 +144,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
               key={s.key}
               type="button"
               onClick={() => go(i)}
-              aria-label={`Go to slide ${i + 1}: ${s.kicker}`}
+              aria-label={`Go to slide ${i + 1}: ${s.headlineTop} ${s.headlineAccent}`}
               aria-current={i === active}
               className={`h-2 rounded-full transition-[width,background-color] duration-300 [transition-timing-function:var(--ease-out-strong)] ${
                 i === active ? "w-8 bg-cyan" : "w-2 bg-white/40 hover:bg-white/70"

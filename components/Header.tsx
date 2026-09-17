@@ -11,10 +11,10 @@ import { SearchModal } from "./SearchModal";
 import { CategoryNode } from "@/lib/types";
 
 const staticLinks = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "Company" },
-  { href: "/services", label: "Services" },
-  { href: "/contact", label: "Contact" },
+  { href: "/", label: "HOME" },
+  { href: "/about", label: "COMPANY" },
+  { href: "/services", label: "SERVICES" },
+  { href: "/contact", label: "CONTACT" },
 ];
 
 const telHref = `tel:${company.phones[0].replace(/\s/g, "")}`;
@@ -140,7 +140,7 @@ export function Header({ tree }: { tree: CategoryNode[] }) {
                 onClick={() => setMobileOpen(false)}
                 className="block font-display text-base text-graphite/90 hover:text-cyan-deep"
               >
-                Products
+                PRODUCTS
               </Link>
             </li>
             {/* Mobile category tree */}

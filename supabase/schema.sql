@@ -65,6 +65,9 @@ create table if not exists products (
   standard_equipment jsonb,
   keywords           jsonb not null default '[]',
   sort_order         integer not null default 0,
+  -- curated "Featured machines" selection on the homepage
+  is_featured        boolean not null default false,
+  featured_sort      integer not null default 0,
   -- search vector updated by trigger
   search_vector      tsvector,
   created_at         timestamptz not null default now(),
@@ -72,6 +75,7 @@ create table if not exists products (
 );
 
 create index if not exists idx_products_category     on products(category_id);
+create index if not exists idx_products_featured     on products(featured_sort, name) where is_featured;
 create index if not exists idx_products_search       on products using gin(search_vector);
 
 -- ---------------------------------------------------------------

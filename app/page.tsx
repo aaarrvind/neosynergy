@@ -6,9 +6,10 @@ import { ServiceIcon } from "@/components/ServiceIcon";
 import { ProductCard } from "@/components/ProductCard";
 import { HeroCarousel, HeroSlide } from "@/components/HeroCarousel";
 import { Eyebrow } from "@/components/Eyebrow";
-import { getCategoryTree, getServices, getProductBySlug } from "@/lib/supabase/queries";
+import { getCategoryTree, getServices, getFeaturedProducts } from "@/lib/supabase/queries";
 
-const featuredSlugs = ["vmc-850", "cnc-lathe-1020", "vmc-650", "rtm-u324"];
+/** Fills the four-column grid below. */
+const FEATURED_LIMIT = 4;
 
 // Hero carousel — one slide per capability area. All copy is drawn from the
 // company profile / services; no invented figures.
@@ -16,7 +17,6 @@ const heroSlides: HeroSlide[] = [
   {
     key: "machine-tools",
     image: "/images/hero-robot-sparks.jpg",
-    kicker: "Machinery Trading & Production — Dubai, UAE",
     headlineTop: "Building machines",
     headlineAccent: "for a better tomorrow.",
     subcopy:
@@ -25,7 +25,6 @@ const heroSlides: HeroSlide[] = [
   {
     key: "automation",
     image: "/images/hero-sparks.jpg",
-    kicker: "Automation & Robotics",
     headlineTop: "Robotic cells,",
     headlineAccent: "built around your line.",
     subcopy:
@@ -34,7 +33,6 @@ const heroSlides: HeroSlide[] = [
   {
     key: "retrofitting",
     image: "/images/hero-lathe-closeup.jpg",
-    kicker: "Retrofitting & Control Upgrades",
     headlineTop: "New control on",
     headlineAccent: "the machines you own.",
     subcopy:
@@ -43,7 +41,6 @@ const heroSlides: HeroSlide[] = [
   {
     key: "special-purpose",
     image: "/images/hero-milling.jpg",
-    kicker: "Special-Purpose Machinery",
     headlineTop: "Engineered for",
     headlineAccent: "your exact process.",
     subcopy:
@@ -71,15 +68,18 @@ const valueProps = [
 ];
 
 export default async function HomePage() {
-  const [tree, services] = await Promise.all([getCategoryTree(), getServices()]);
-  const featuredProducts = await Promise.all(featuredSlugs.map((s) => getProductBySlug(s)));
+  const [tree, services, featuredProducts] = await Promise.all([
+    getCategoryTree(),
+    getServices(),
+    getFeaturedProducts(FEATURED_LIMIT),
+  ]);
 
   return (
     <>
       {/* Hero */}
       <HeroCarousel slides={heroSlides} />
 
-      {/* What you can expect */}
+      {/* What you can expect
       <section className="border-b border-steel-100 py-16 lg:py-20">
         <Container>
           <div className="grid gap-10 sm:grid-cols-3 sm:gap-8">
@@ -94,10 +94,10 @@ export default async function HomePage() {
             ))}
           </div>
         </Container>
-      </section>
+      </section> */}
 
       {/* Product categories */}
-      <section className="py-20 lg:py-24">
+      {/* <section className="py-20 lg:py-24">
         <Container>
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -145,48 +145,51 @@ export default async function HomePage() {
             ))}
           </div>
         </Container>
-      </section>
+      </section> */}
 
-      {/* Featured products */}
-      <section className="bg-steel-50 py-20 lg:py-24">
-        <Container>
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <Eyebrow label="Stock & popular models" className="text-cyan-deep" />
-              <h2 className="mt-3 font-display text-3xl font-bold text-graphite sm:text-4xl">
-                Featured machines
-              </h2>
+      {/* Featured products — curated in the admin panel (products → Featured).
+          The whole section is dropped when nothing is marked featured, so the
+          homepage never shows a heading above an empty grid. */}
+      {featuredProducts.length > 0 && (
+        <section className="bg-steel-50 py-20 lg:py-24">
+          <Container>
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <Eyebrow label="Stock & popular models" className="text-cyan-deep" />
+                <h2 className="mt-3 font-display text-3xl font-bold text-graphite sm:text-4xl">
+                  Featured machines
+                </h2>
+              </div>
+              <Link
+                href="/products"
+                className="arrow-link pressable inline-flex items-center gap-2 text-sm font-semibold text-cyan-deep hover:text-graphite"
+              >
+                All machines <ArrowRight size={16} className="arrow-icon" />
+              </Link>
             </div>
-            <Link
-              href="/products"
-              className="arrow-link pressable inline-flex items-center gap-2 text-sm font-semibold text-cyan-deep hover:text-graphite"
-            >
-              All machines <ArrowRight size={16} className="arrow-icon" />
-            </Link>
-          </div>
 
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {featuredProducts.map((product) => {
-              if (!product) return null;
-              const cat = tree
-                .flatMap((n) => [n, ...n.children, ...n.children.flatMap((c) => c.children)])
-                .find((n) => n.id === product.categoryId);
-              return (
-                <ProductCard
-                  key={product.slug}
-                  name={product.name}
-                  description={product.tagline}
-                  image={product.image}
-                  href={`/products/${product.categoryPath.join("/")}/${product.slug}`}
-                  categorySlug={product.categorySlug}
-                  categoryName={cat?.name ?? product.categorySlug}
-                  variants={product.variants}
-                />
-              );
-            })}
-          </div>
-        </Container>
-      </section>
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {featuredProducts.map((product) => {
+                const cat = tree
+                  .flatMap((n) => [n, ...n.children, ...n.children.flatMap((c) => c.children)])
+                  .find((n) => n.id === product.categoryId);
+                return (
+                  <ProductCard
+                    key={product.slug}
+                    name={product.name}
+                    description={product.tagline}
+                    image={product.image}
+                    href={`/products/${product.categoryPath.join("/")}/${product.slug}`}
+                    categorySlug={product.categorySlug}
+                    categoryName={cat?.name ?? product.categorySlug}
+                    variants={product.variants}
+                  />
+                );
+              })}
+            </div>
+          </Container>
+        </section>
+      )}
 
       {/* Services */}
       <section className="py-20 lg:py-24">
@@ -275,7 +278,6 @@ export default async function HomePage() {
         <Container>
           <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
-              <Eyebrow label="Get started" className="text-cyan" />
               <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl">
                 Ready to get a quotation?
               </h2>
