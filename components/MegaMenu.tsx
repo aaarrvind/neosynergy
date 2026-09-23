@@ -75,7 +75,7 @@ export function MegaMenu({ tree, active = false }: Props) {
     >
       {/* Trigger */}
       <button
-        className={`flex items-center gap-1 border-b-2 pb-px font-display text-sm font-medium tracking-wide transition-colors ${
+        className={`flex items-center gap-1 border-b-2 pb-px font-display text-sm font-semibold tracking-wide transition-colors ${
           active
             ? "border-cyan text-graphite"
             : "border-transparent text-graphite/60 hover:text-graphite"
@@ -84,7 +84,7 @@ export function MegaMenu({ tree, active = false }: Props) {
         aria-haspopup="true"
         onClick={() => setOpen((v) => !v)}
       >
-        Products
+        PRODUCTS
         <ChevronDown
           size={14}
           className={`transition-transform duration-200 [transition-timing-function:var(--ease-out-strong)] ${open ? "rotate-180" : ""}`}

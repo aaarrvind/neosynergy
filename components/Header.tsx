@@ -67,8 +67,8 @@ export function Header({ tree }: { tree: CategoryNode[] }) {
             <Logo variant="header" />
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="ml-auto hidden items-center gap-7 lg:flex">
+          {/* Desktop nav — centred between the logo and the actions */}
+          <nav className="mx-auto hidden items-center gap-7 lg:flex">
             {staticLinks.map((link) => {
               const active =
                 link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
@@ -76,7 +76,7 @@ export function Header({ tree }: { tree: CategoryNode[] }) {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`border-b-2 pb-0.5 font-display text-sm font-medium tracking-wide transition-colors ${
+                  className={`border-b-2 pb-0.5 font-display text-sm font-semibold tracking-wide transition-colors ${
                     active
                       ? "border-cyan text-graphite"
                       : "border-transparent text-graphite/60 hover:text-graphite"
@@ -96,10 +96,10 @@ export function Header({ tree }: { tree: CategoryNode[] }) {
             <SearchModal />
             <button
               onClick={openDrawer}
-              className="pressable relative inline-flex items-center gap-2 rounded bg-cyan px-4 py-2 text-sm font-semibold text-graphite hover:bg-cyan-deep hover:text-white"
+              className="pressable relative inline-flex items-center gap-2 rounded bg-cyan px-5 py-2.5 text-sm font-semibold text-graphite hover:bg-cyan-deep hover:text-white"
               aria-label="Open quote request cart"
             >
-              <FileText size={15} />
+              <FileText size={16} />
               <span className="hidden sm:inline">Quote</span>
               {totalCount > 0 && (
                 <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-graphite px-1 text-xs font-semibold text-white ring-2 ring-graphite">
