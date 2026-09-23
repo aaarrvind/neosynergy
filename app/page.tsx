@@ -196,7 +196,6 @@ export default async function HomePage() {
         <Container>
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <Eyebrow label="Services" className="text-cyan-deep" />
               <h2 className="mt-3 font-display text-3xl font-bold text-graphite sm:text-4xl">
                 What we do
               </h2>
