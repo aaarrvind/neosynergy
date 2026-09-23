@@ -332,13 +332,13 @@ async function ProductDetailPage({
 
       {/* Specs */}
       {product.specGroups && product.specGroups.length > 0 && (
-        <section className="bg-steel-50 py-16">
+        <section className="border-t border-steel-100 py-16">
           <Container>
             <SectionDivider label="Specification" />
             <h2 className="mt-8 font-display text-2xl font-semibold text-graphite sm:text-3xl">
               Technical specification
             </h2>
-            <div className="mt-8 max-w-3xl">
+            <div className="mt-8 max-w-4xl">
               <SpecReadout specGroups={product.specGroups} variants={product.variants} />
             </div>
           </Container>

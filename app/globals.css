@@ -145,89 +145,150 @@ select:focus-visible {
   white-space: nowrap;
 }
 
-/* ---- Digital readout panel (spec tables) ---- */
-.readout {
-  background: #1B1E24;
-  border-radius: 0.5rem;
-  font-family: var(--font-mono);
-  border: 1px solid #2A2E37;
-  overflow: hidden; /* clip zebra rows to the rounded corners */
+/* ---- Specification table ----
+   One continuous table rather than a stack of separate panels, so every column
+   stays on the same grid from the first group to the last. Group titles are
+   band rows inside the table; when a product has variants, that band repeats
+   the variant names, which keeps the column context in view without a sticky
+   header (a sticky header would have to be offset by the site header's height,
+   which differs between breakpoints). */
+.spec-panel {
+  background: #fff;
 }
-.readout-head {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.7rem 1rem;
-  border-bottom: 1px solid #2A2E37;
-  color: #C2C6CE;
-  font-size: 0.7rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-.readout-head::before {
-  /* indicator LED — echoes the dim-line tick motif */
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 1px;
-  background: #14B8E0;
-  box-shadow: 0 0 6px rgba(20, 184, 224, 0.55);
-  flex-shrink: 0;
-}
-.readout-scroll {
+.spec-scroll {
   overflow-x: auto;
 }
-.readout-table {
+.spec-table {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
+  border-collapse: separate; /* required for the sticky label column */
+  border-spacing: 0;
+  font-size: 0.875rem;
 }
-.readout-table th,
-.readout-table td {
-  padding: 0.55rem 1rem;
+/* No horizontal padding on the outer edges — the first label and last value
+   align with the section's own margins, the way a printed sheet reads. */
+.spec-table th,
+.spec-table td {
+  padding: 0.8rem 1.25rem;
 }
-.readout-table thead th {
-  color: #8A8F99;
-  font-size: 0.65rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+.spec-table th:first-child,
+.spec-table td:first-child {
+  padding-left: 0;
+}
+.spec-table th:last-child,
+.spec-table td:last-child {
+  padding-right: 0;
+}
+
+/* Group band — a typographic heading with a rule under it, rather than a
+   filled bar. Keeps the sheet feeling like a printed spec page instead of a
+   spreadsheet, which is how Haas and Mazak present the same information. */
+.spec-band th {
+  border-bottom: 2px solid #14B8E0;
+  padding-top: 2.5rem;
+  padding-bottom: 0.5rem;
   text-align: right;
-  line-height: 1.5;
-  border-bottom: 1px solid #2A2E37;
+  vertical-align: bottom;
+  white-space: nowrap;
+  background: #fff;
 }
-.readout-table thead th:first-child {
+/* The first group sits directly under the section heading */
+.spec-table tbody:first-of-type .spec-band th {
+  padding-top: 0;
+}
+.spec-band .spec-band-title {
   text-align: left;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #1B1E24;
 }
-.readout-table tbody tr + tr {
-  border-top: 1px solid rgba(42, 46, 55, 0.6);
+/* Variant names read as column labels, not as headings */
+.spec-band .spec-band-variant {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #0A6E8C;
 }
-.readout-table tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.02);
+
+/* Data rows */
+.spec-row + .spec-row th,
+.spec-row + .spec-row td {
+  border-top: 1px solid #E9EBEF;
 }
 @media (hover: hover) and (pointer: fine) {
-  .readout-table tbody tr {
+  .spec-row {
     transition: background-color 120ms ease;
   }
-  .readout-table tbody tr:hover {
-    background: rgba(20, 184, 224, 0.07);
+  .spec-row:hover {
+    background: #F5F6F8;
   }
 }
-.readout-label {
-  color: #A9AFBA;
+.spec-label {
   text-align: left;
   font-weight: 400;
-  min-width: 9rem;
+  /* Alpha on the colour, never `opacity` — element opacity would also make the
+     sticky column's background translucent and let scrolled columns show
+     through it. */
+  color: rgba(27, 30, 36, 0.7);
+  min-width: 12rem;
 }
-.readout-value {
-  color: #14B8E0;
+@media (max-width: 640px) {
+  .spec-table th,
+  .spec-table td {
+    padding: 0.65rem 0.85rem;
+  }
+  /* Give the value columns more of a phone's width; the label stays pinned,
+     so a slightly narrower label column is still readable. */
+  .spec-label {
+    min-width: 8.5rem;
+  }
+}
+.spec-value {
   text-align: right;
+  font-family: var(--font-mono);
   font-weight: 500;
+  color: #1B1E24;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* A value shared by every variant — muted so the per-variant ones lead. It
+   spans the whole value area, so it may wrap; that keeps a long descriptive
+   spec from widening the table and forcing sideways scrolling on phones.
+   Per-variant values stay nowrap so their columns line up. */
+.spec-value.is-shared {
+  color: #0A6E8C;
+  white-space: normal;
   overflow-wrap: break-word;
 }
-.readout-value.spark {
-  color: #F2A23C;
+
+/* Keep the label column readable while the variant columns scroll sideways.
+   inherit would resolve to transparent, so each state sets its own background. */
+.spec-compare .spec-label,
+.spec-compare .spec-band-title {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+.spec-compare .spec-label {
+  background: #fff;
+  border-right: 1px solid #E9EBEF;
+}
+/* In comparison mode a shared value spans every variant column, so right
+   aligning it would park it at the far edge — off-screen until you scroll
+   sideways on a phone. Start it where the value columns start instead. */
+.spec-compare .spec-value.is-shared {
+  text-align: left;
+}
+.spec-compare .spec-band-title {
+  background: #fff;
+}
+@media (hover: hover) and (pointer: fine) {
+  .spec-compare .spec-row:hover .spec-label {
+    background: #F5F6F8;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
