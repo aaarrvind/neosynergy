@@ -119,7 +119,7 @@ export function MegaMenu({ tree, active = false }: Props) {
                           <Link
                             href={href(child)}
                             onClick={close}
-                            className="block text-sm leading-snug text-graphite/60 transition-colors hover:text-graphite"
+                            className="block text-sm leading-snug text-graphite/60 transition-colors hover:text-cyan-deep"
                           >
                             {child.name}
                           </Link>
@@ -138,7 +138,7 @@ export function MegaMenu({ tree, active = false }: Props) {
                   key={root.id}
                   href={href(root)}
                   onClick={close}
-                  className="text-sm font-medium text-graphite/60 transition-colors hover:text-graphite"
+                  className="text-sm font-medium text-graphite/60 transition-colors hover:text-spark-deep"
                 >
                   All {root.name}
                 </Link>
@@ -146,7 +146,7 @@ export function MegaMenu({ tree, active = false }: Props) {
               <Link
                 href="/products"
                 onClick={close}
-                className="text-sm font-semibold text-cyan-deep transition-colors hover:text-graphite"
+                className="text-sm font-semibold text-cyan-deep transition-colors hover:text-spark-deep"
               >
                 View all products
               </Link>

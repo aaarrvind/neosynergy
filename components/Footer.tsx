@@ -15,7 +15,7 @@ export function Footer({ tree }: { tree: CategoryNode[] }) {
           </div>
 
           <div>
-            <h3 className="font-display text-sm uppercase tracking-[0.2em] text-white/40 mb-4">Products</h3>
+            <h3 className="font-display text-sm uppercase tracking-[0.2em] text-spark mb-4">Products</h3>
             <ul className="flex flex-col gap-1.5 text-sm">
               {tree.map(node => (
                 <li key={node.id}>
@@ -28,7 +28,7 @@ export function Footer({ tree }: { tree: CategoryNode[] }) {
           </div>
 
           <div>
-            <h3 className="font-display text-sm uppercase tracking-[0.2em] text-white/40 mb-4">Company</h3>
+            <h3 className="font-display text-sm uppercase tracking-[0.2em] text-spark mb-4">Company</h3>
             <ul className="flex flex-col gap-1.5 text-sm">
               <li><Link href="/about" className="hover:text-cyan">About & team</Link></li>
               <li><Link href="/services" className="hover:text-cyan">Services</Link></li>
@@ -38,7 +38,7 @@ export function Footer({ tree }: { tree: CategoryNode[] }) {
           </div>
 
           <div>
-            <h3 className="font-display text-sm uppercase tracking-[0.2em] text-white/40 mb-4">Contact</h3>
+            <h3 className="font-display text-sm uppercase tracking-[0.2em] text-spark mb-4">Contact</h3>
             <ul className="flex flex-col gap-3 text-sm">
               <li className="flex items-start gap-2">
                 <MapPin size={15} className="mt-0.5 flex-shrink-0 text-cyan" />
