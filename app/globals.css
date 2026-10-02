@@ -58,13 +58,16 @@ body {
   }
 }
 
-/* Card shadow lift — hover-capable devices only */
+/* Card lift — hover-capable devices only. Border and shadow move together;
+   this declaration owns the transition, so don't add transition-* utilities
+   alongside it (they would be overridden, as this rule comes later). */
 .card-hover {
-  transition: box-shadow 200ms ease;
+  transition: box-shadow 200ms ease, border-color 200ms ease;
 }
 @media (hover: hover) and (pointer: fine) {
   .card-hover:hover {
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.08);
+    border-color: #C2C6CE;
+    box-shadow: 0 12px 24px -12px rgb(27 30 36 / 0.18), 0 2px 4px -2px rgb(27 30 36 / 0.06);
   }
 }
 
