@@ -147,6 +147,13 @@ select:focus-visible {
   text-transform: uppercase;
   white-space: nowrap;
 }
+.dim-line-lg .dim-line-label {
+  font-size: 0.9rem;
+  color: #1B1E24;
+}
+.dim-line-lg .tick {
+  height: 14px;
+}
 
 /* ---- Specification table ----
    One continuous table rather than a stack of separate panels, so every column

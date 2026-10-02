@@ -16,10 +16,7 @@ export default function AboutPage() {
     <>
       <section className="bg-graphite py-16 text-white">
         <Container>
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-cyan">
-            Company
-          </p>
-          <h1 className="mt-3 font-display text-3xl font-bold sm:text-4xl">
+          <h1 className="font-display text-3xl font-bold sm:text-4xl">
             {company.tagline}
           </h1>
           <p className="mt-4 max-w-2xl text-white/70">{company.intro}</p>
@@ -28,7 +25,7 @@ export default function AboutPage() {
 
       <section className="py-16">
         <Container>
-          <SectionDivider label="Vision & mission" />
+          <SectionDivider label="Vision & mission" size="lg" />
           <div className="mt-8 grid gap-10 lg:grid-cols-2">
             <div>
               <h2 className="font-display text-xl font-semibold text-graphite">
@@ -57,7 +54,7 @@ export default function AboutPage() {
 
       <section className="bg-steel-50 py-16">
         <Container>
-          <SectionDivider label="Our team" />
+          <SectionDivider label="Our team" size="lg" />
           <div className="mt-8 grid gap-10 lg:grid-cols-2 lg:items-center">
             <div>
               <h2 className="font-display text-2xl font-semibold text-graphite sm:text-3xl">
@@ -87,7 +84,7 @@ export default function AboutPage() {
 
       <section className="py-16">
         <Container>
-          <SectionDivider label="Special-purpose engineering" />
+          <SectionDivider label="Special-purpose engineering" size="lg" />
           <div className="mt-8 grid gap-10 lg:grid-cols-2 lg:items-center">
             <div className="relative aspect-[4/3] overflow-hidden rounded-lg lg:order-2">
               <Image

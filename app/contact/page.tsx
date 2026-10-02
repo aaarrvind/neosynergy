@@ -17,10 +17,7 @@ export default function ContactPage() {
     <>
       <section className="bg-graphite py-16 text-white">
         <Container>
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-cyan">
-            Contact
-          </p>
-          <h1 className="mt-3 font-display text-3xl font-bold sm:text-4xl">
+          <h1 className="font-display text-3xl font-bold sm:text-4xl">
             Get in touch
           </h1>
           <p className="mt-4 max-w-2xl text-white/70">
@@ -32,7 +29,7 @@ export default function ContactPage() {
 
       <section className="py-16">
         <Container>
-          <SectionDivider label="Reach us" />
+          <SectionDivider label="Reach us" size="lg" />
           <div className="mt-8 grid gap-10 lg:grid-cols-5">
             <div className="lg:col-span-2">
               <ul className="flex flex-col gap-6">

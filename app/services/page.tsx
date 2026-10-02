@@ -22,8 +22,7 @@ export default async function ServicesPage() {
       {/* Page header */}
       <section className="bg-graphite py-16 text-white lg:py-24">
         <Container>
-          <Eyebrow label="Services" className="text-cyan" />
-          <h1 className="mt-4 max-w-3xl font-display text-3xl font-bold leading-[1.15] sm:text-4xl lg:text-[2.75rem]">
+          <h1 className="max-w-3xl font-display text-3xl font-bold leading-[1.15] sm:text-4xl lg:text-[2.75rem]">
             A one-stop service for machine tools and automation
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg">

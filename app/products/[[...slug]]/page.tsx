@@ -126,7 +126,7 @@ async function ProductsIndexPage({ tree }: { tree: CategoryNode[] }) {
       </section>
       <section className="py-16">
         <Container>
-          <SectionDivider label="Categories" />
+          <SectionDivider label="Categories" size="lg" />
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {tree.map((node, i) => (
               <Link key={node.id} href={`/products/${node.pathSlugs.join("/")}`}
@@ -194,7 +194,7 @@ async function CategoryPage({ node }: { node: CategoryNode }) {
       {node.children.length > 0 && (
         <section className="bg-steel-50 py-12">
           <Container>
-            <SectionDivider label="Subcategories" />
+            <SectionDivider label="Subcategories" size="lg" />
             <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {node.children.map(child => (
                 <Link key={child.id} href={`/products/${child.pathSlugs.join("/")}`}
@@ -223,7 +223,7 @@ async function CategoryPage({ node }: { node: CategoryNode }) {
       {products.length > 0 && (
         <section className="py-12">
           <Container>
-            <SectionDivider label="Products" />
+            <SectionDivider label="Products" size="lg" />
             <h2 className="mt-8 font-display text-2xl font-semibold text-graphite sm:text-3xl">
               {node.children.length > 0 ? "Featured products" : "Available products"}
             </h2>
@@ -334,7 +334,7 @@ async function ProductDetailPage({
       {product.specGroups && product.specGroups.length > 0 && (
         <section className="border-t border-steel-100 py-16">
           <Container>
-            <SectionDivider label="Specification" />
+            <SectionDivider label="Specification" size="lg" />
             <h2 className="mt-8 font-display text-2xl font-semibold text-graphite sm:text-3xl">
               Technical specification
             </h2>
@@ -349,7 +349,7 @@ async function ProductDetailPage({
       {product.standardEquipment && product.standardEquipment.length > 0 && (
         <section className="py-16">
           <Container>
-            <SectionDivider label="Standard equipment" />
+            <SectionDivider label="Standard equipment" size="lg" />
             <h2 className="mt-8 font-display text-2xl font-semibold text-graphite sm:text-3xl">
               Included as standard
             </h2>
@@ -369,7 +369,7 @@ async function ProductDetailPage({
       {related.length > 0 && (
         <section className="bg-steel-50 py-12">
           <Container>
-            <SectionDivider label="Related products" />
+            <SectionDivider label="Related products" size="lg" />
             <h2 className="mt-6 font-display text-xl font-semibold text-graphite">
               {allSameCategory
                 ? `More in ${categoryNode?.name ?? "this category"}`
