@@ -5,6 +5,7 @@ import {
 } from "../types";
 import { DbProduct, DbSpecGroup, DbSpecRow, DbProductImage } from "./db-types";
 import { Service } from "../data/services";
+import { LISTING_PAGE_SIZE, ProductSort } from "../catalog";
 
 // ---------------------------------------------------------------
 // Helpers
@@ -380,6 +381,94 @@ export async function getAllProductSlugs(): Promise<{ slug: string; category: st
   } catch (err) {
     // Feeds the sitemap. Emitting nothing is better than emitting URLs that 404.
     return degraded("getAllProductSlugs", err, []);
+  }
+}
+
+// ---------------------------------------------------------------
+// CATALOGUE LISTING
+// ---------------------------------------------------------------
+
+/** PostgREST caps a single response at 1000 rows on Supabase. */
+const MAX_ROWS = 1000;
+
+/**
+ * Number of products filed directly in each category (not counting
+ * subcategories — roll those up with rollUpCounts in lib/catalog.ts).
+ * Reads only category_id, paged, so it stays cheap as the catalogue grows.
+ */
+export async function getDirectProductCounts(): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  if (!isSupabaseConfigured()) return counts;
+
+  try {
+    const supabase = createPublicSupabaseClient();
+    for (let from = 0; ; from += MAX_ROWS) {
+      const { data, error } = await supabase
+        .from("products")
+        .select("category_id")
+        .order("id")
+        .range(from, from + MAX_ROWS - 1);
+      if (error) throw error;
+      for (const row of data as { category_id: string }[]) {
+        counts.set(row.category_id, (counts.get(row.category_id) ?? 0) + 1);
+      }
+      if (data.length < MAX_ROWS) return counts;
+    }
+  } catch (err) {
+    return degraded("getDirectProductCounts", err, new Map<string, number>());
+  }
+}
+
+/**
+ * One page of products for a listing, with the total for pagination.
+ *
+ * categoryIds scopes the listing (a category plus all of its descendants);
+ * omit it for the whole catalogue. Cards need no specs or gallery, so neither
+ * is fetched. Every sort ends on id so that rows with equal sort keys keep a
+ * fixed order — without it, pages can repeat or skip products.
+ */
+export async function listProducts(opts: {
+  categoryIds?: string[];
+  sort: ProductSort;
+  page: number;
+}): Promise<{ products: Product[]; total: number }> {
+  if (!isSupabaseConfigured()) return { products: [], total: 0 };
+
+  try {
+    const supabase = createPublicSupabaseClient();
+    const from = (opts.page - 1) * LISTING_PAGE_SIZE;
+
+    let query = supabase.from("products").select("*", { count: "exact" });
+    if (opts.categoryIds) query = query.in("category_id", opts.categoryIds);
+    if (opts.sort === "name") query = query.order("name");
+    else if (opts.sort === "newest") query = query.order("created_at", { ascending: false });
+    else query = query.order("sort_order").order("name");
+    query = query.order("id");
+
+    const { data, error, count } = await query.range(from, from + LISTING_PAGE_SIZE - 1);
+
+    if (error) {
+      // A page past the end is a 416 from PostgREST rather than an empty
+      // result. Fetch the real total so the page can send the visitor to the
+      // last page that exists, instead of showing an empty catalogue.
+      if (error.code === "PGRST103") {
+        let countQuery = supabase.from("products").select("id", { count: "exact", head: true });
+        if (opts.categoryIds) countQuery = countQuery.in("category_id", opts.categoryIds);
+        const { count: total } = await countQuery;
+        return { products: [], total: total ?? 0 };
+      }
+      throw error;
+    }
+
+    const byId = new Map(flattenTree(await getCategoryTree()).map(n => [n.id, n]));
+    return {
+      total: count ?? 0,
+      products: (data as DbProduct[]).map(p =>
+        mapProduct(p, byId.get(p.category_id)?.pathSlugs ?? [], [], [], [])
+      ),
+    };
+  } catch (err) {
+    return degraded("listProducts", err, { products: [] as Product[], total: 0 });
   }
 }
 

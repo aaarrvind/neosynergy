@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound, permanentRedirect } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { ChevronRight, CheckCircle2 } from "lucide-react";
 import { Container } from "@/components/Container";
 import { SectionDivider } from "@/components/SectionDivider";
@@ -10,11 +10,19 @@ import { SpecReadout } from "@/components/SpecReadout";
 import { AddToQuoteButton } from "@/components/AddToQuoteButton";
 import { JsonLd } from "@/components/JsonLd";
 import { ProductGallery } from "@/components/ProductGallery";
+import { AvailableOnRequest } from "@/components/catalog/AvailableOnRequest";
+import { CategorySidebar } from "@/components/catalog/CategorySidebar";
+import { OpenSearchButton } from "@/components/catalog/OpenSearchButton";
+import { ProductListing } from "@/components/catalog/ProductListing";
+import { SidebarDrawer } from "@/components/catalog/SidebarDrawer";
 import {
   getCategoryTree, flattenTree, findNodeByPath, findNodeById,
-  getProductsByCategory, getProductBySlug, getRelatedProducts,
-  getAllCategorySlugs
+  getProductBySlug, getRelatedProducts, getAllCategorySlugs,
+  getDirectProductCounts, listProducts,
 } from "@/lib/supabase/queries";
+import {
+  LISTING_PAGE_SIZE, listingQuery, parseListingParams, rollUpCounts, subtreeIds,
+} from "@/lib/catalog";
 import { company } from "@/lib/data/company";
 import { CategoryNode } from "@/lib/types";
 
@@ -42,28 +50,45 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: { slug?: string[] };
+  searchParams: Record<string, string | string[] | undefined>;
 }): Promise<Metadata> {
   const slugs = params.slug ?? [];
   const tree = await getCategoryTree();
 
+  // Listing pages: page 2+ is its own page for search engines (own title,
+  // self-canonical) so deep products stay reachable. Sort is ignored — a
+  // sorted view is the same content and canonicalises to the unsorted URL.
+  // Only called on listing branches, so product pages never read searchParams
+  // and stay statically cached.
+  const listingMeta = (path: string, title: string) => {
+    const { page } = parseListingParams(searchParams);
+    return {
+      title: page > 1 ? `${title} — Page ${page}` : title,
+      canonical: page > 1 ? `${path}?page=${page}` : path,
+    };
+  };
+
   // No slug → products index
   if (slugs.length === 0) {
+    const meta = listingMeta("/products", "Products — Machine Tools, Automation & Accessories");
     return {
-      title: "Products — Machine Tools, Automation & Accessories",
-      description: "Browse Neo Synergy's full product catalog.",
-      alternates: { canonical: "/products" },
+      title: meta.title,
+      description: "Browse Neo Synergy's full catalogue of machine tools, automation, and accessories, or ask us to source anything not listed.",
+      alternates: { canonical: meta.canonical },
     };
   }
 
   // Try category first
   const node = findNodeByPath(tree, slugs);
   if (node) {
+    const meta = listingMeta(`/products/${slugs.join("/")}`, node.name);
     return {
-      title: node.name,
+      title: meta.title,
       description: node.metaDescription || node.intro,
-      alternates: { canonical: `/products/${slugs.join("/")}` },
+      alternates: { canonical: meta.canonical },
     };
   }
 
@@ -110,42 +135,117 @@ function Breadcrumb({ pathSlugs, pathNames }: { pathSlugs: string[]; pathNames: 
 }
 
 // ---------------------------------------------------------------
+// Catalogue listing — shared by the index and every category page
+// ---------------------------------------------------------------
+type SearchParams = Record<string, string | string[] | undefined>;
+
+const sidebarClasses =
+  "lg:sticky lg:top-[7.5rem] lg:max-h-[calc(100vh-8.5rem)] lg:self-start lg:overflow-y-auto";
+
+/**
+ * Everything one page of a listing needs. A page number past the end — an
+ * old link after products were removed, or a hand-edited URL — redirects to
+ * the last page that exists rather than rendering an empty grid.
+ *
+ * This route must not have a loading.tsx. A route-level loading boundary
+ * starts streaming before the page body runs, after which redirect(),
+ * permanentRedirect() and notFound() can no longer set the status code: they
+ * become client-side navigations inside a 200 response. That turned every
+ * unknown /products URL into a soft 404 and every canonical 308 into a 200.
+ */
+async function loadListing(
+  tree: CategoryNode[],
+  scope: CategoryNode | null,
+  searchParams: SearchParams,
+  basePath: string
+) {
+  const { sort, page } = parseListingParams(searchParams);
+  const [direct, listing] = await Promise.all([
+    getDirectProductCounts(),
+    listProducts({ categoryIds: scope ? subtreeIds(scope) : undefined, sort, page }),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(listing.total / LISTING_PAGE_SIZE));
+  if (page > totalPages) redirect(`${basePath}${listingQuery(sort, totalPages)}`);
+
+  const counts = rollUpCounts(tree, direct);
+  return {
+    sort,
+    page,
+    listing,
+    counts,
+    catalogueTotal: tree.reduce((sum, n) => sum + (counts.get(n.id) ?? 0), 0),
+    categoryNames: new Map(flattenTree(tree).map(n => [n.id, n.name])),
+  };
+}
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** A heading or intro that only repeats the category name adds nothing. */
+const differsFrom = (text: string | undefined, name: string) =>
+  !!text && text.trim().toLowerCase() !== name.trim().toLowerCase();
+
+// ---------------------------------------------------------------
 // Products index page (/products)
 // ---------------------------------------------------------------
-async function ProductsIndexPage({ tree }: { tree: CategoryNode[] }) {
+async function ProductsIndexPage({
+  tree,
+  searchParams,
+}: {
+  tree: CategoryNode[];
+  searchParams: SearchParams;
+}) {
+  const { sort, page, listing, counts, catalogueTotal, categoryNames } = await loadListing(
+    tree,
+    null,
+    searchParams,
+    "/products"
+  );
+
   return (
     <>
-      <section className="bg-graphite py-16 text-white">
+      <section className="bg-graphite py-14 text-white lg:py-16">
         <Container>
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-cyan">Catalog</p>
-          <h1 className="mt-3 font-display text-3xl font-bold sm:text-4xl">Products</h1>
+          <h1 className="font-display text-3xl font-bold sm:text-4xl">Products</h1>
           <p className="mt-4 max-w-2xl text-white/70">
-            Browse the full catalog — add machines, controllers, and accessories to your quote request.
+            Machine tools, automation, and accessories — supplied, installed, and supported
+            across the UAE and GCC. Add what you need to a quote request, or ask us to source
+            anything not listed here.
           </p>
+          <div className="mt-8">
+            <OpenSearchButton />
+          </div>
         </Container>
       </section>
-      <section className="py-16">
+
+      {/* Every product, with the category tree to narrow it. Categories
+          aren't repeated as a directory here — the mega menu already lists them. */}
+      <section id="all-products" className="scroll-mt-28 py-10 lg:py-14">
         <Container>
-          <SectionDivider label="Categories" size="lg" />
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {tree.map((node, i) => (
-              <Link key={node.id} href={`/products/${node.pathSlugs.join("/")}`}
-                className="group relative flex aspect-[4/3] flex-col justify-end overflow-hidden rounded-lg">
-                {node.heroImage && (
-                  <Image src={node.heroImage} alt={node.name} fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-graphite/90 via-graphite/20 to-transparent" />
-                <div className="relative z-10 p-5">
-                  <h3 className="font-display text-lg font-semibold text-white">{node.name}</h3>
-                  <p className="mt-1 text-sm text-white/70">{node.intro}</p>
-                  {node.children.length > 0 && (
-                    <p className="mt-2 text-xs text-cyan/80">{node.children.length} subcategories</p>
-                  )}
-                </div>
-              </Link>
-            ))}
+          <div className="grid gap-8 lg:grid-cols-[15rem_1fr] lg:gap-10">
+            <aside className={sidebarClasses}>
+              <SidebarDrawer label="Browse categories">
+                <CategorySidebar tree={tree} activePathIds={[]} counts={counts} total={catalogueTotal} />
+              </SidebarDrawer>
+            </aside>
+            <ProductListing
+              products={listing.products}
+              total={listing.total}
+              page={page}
+              sort={sort}
+              basePath="/products"
+              anchor="all-products"
+              categoryNames={categoryNames}
+              empty={
+                <p className="text-sm text-graphite/60">
+                  No products are listed online yet.{" "}
+                  <Link href="/contact" className="font-medium text-cyan-deep hover:text-graphite">
+                    Tell us what you need
+                  </Link>{" "}
+                  and we&rsquo;ll source it.
+                </p>
+              }
+            />
           </div>
         </Container>
       </section>
@@ -156,8 +256,23 @@ async function ProductsIndexPage({ tree }: { tree: CategoryNode[] }) {
 // ---------------------------------------------------------------
 // Category page (any depth)
 // ---------------------------------------------------------------
-async function CategoryPage({ node }: { node: CategoryNode }) {
-  const products = await getProductsByCategory(node.id);
+async function CategoryPage({
+  node,
+  tree,
+  searchParams,
+}: {
+  node: CategoryNode;
+  tree: CategoryNode[];
+  searchParams: SearchParams;
+}) {
+  const basePath = `/products/${node.pathSlugs.join("/")}`;
+  const { sort, page, listing, counts, catalogueTotal, categoryNames } = await loadListing(
+    tree,
+    node,
+    searchParams,
+    basePath
+  );
+  const about = node.description.filter(p => differsFrom(p, node.name));
 
   return (
     <>
@@ -165,80 +280,54 @@ async function CategoryPage({ node }: { node: CategoryNode }) {
         <Container>
           <Breadcrumb pathSlugs={node.pathSlugs} pathNames={node.pathNames} />
           <h1 className="mt-3 font-display text-3xl font-bold sm:text-4xl">{node.name}</h1>
-          <p className="mt-3 max-w-2xl text-white/70">{node.intro}</p>
+          {differsFrom(node.intro, node.name) && (
+            <p className="mt-3 max-w-2xl text-white/70">{node.intro}</p>
+          )}
+          <p className="mt-5 text-sm text-white/50">
+            {listing.total > 0 ? plural(listing.total, "product") : "Available on request"}
+            {node.children.length > 0 &&
+              ` · ${plural(node.children.length, "subcategory", "subcategories")}`}
+          </p>
         </Container>
       </section>
 
-      {/* Description */}
-      {node.description.length > 0 && (
-        <section className="py-12">
-          <Container>
-            <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-              {node.heroImage && (
-                <div className="relative aspect-[4/3] overflow-hidden rounded-lg">
-                  <Image src={node.heroImage} alt={node.name} fill className="object-cover"
-                    sizes="(min-width: 1024px) 50vw, 100vw" />
-                </div>
-              )}
-              <div>
-                {node.description.map((p, i) => (
-                  <p key={i} className="mb-4 leading-relaxed text-graphite/70 last:mb-0">{p}</p>
-                ))}
-              </div>
-            </div>
-          </Container>
-        </section>
-      )}
-
-      {/* Subcategories */}
-      {node.children.length > 0 && (
-        <section className="bg-steel-50 py-12">
-          <Container>
-            <SectionDivider label="Subcategories" size="lg" />
-            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {node.children.map(child => (
-                <Link key={child.id} href={`/products/${child.pathSlugs.join("/")}`}
-                  className="group relative flex aspect-[4/3] flex-col justify-end overflow-hidden rounded-lg border border-steel-100">
-                  {child.heroImage && (
-                    <Image src={child.heroImage} alt={child.name} fill
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-graphite/90 via-graphite/20 to-transparent" />
-                  <div className="relative z-10 p-4">
-                    <h3 className="font-display text-base font-semibold text-white">{child.name}</h3>
-                    <p className="mt-1 text-xs text-white/60 line-clamp-2">{child.intro}</p>
-                    {child.children.length > 0 && (
-                      <p className="mt-1 text-xs text-cyan/70">{child.children.length} subcategories</p>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </Container>
-        </section>
-      )}
-
-      {/* Products */}
-      {products.length > 0 && (
-        <section className="py-12">
-          <Container>
-            <SectionDivider label="Products" size="lg" />
-            <h2 className="mt-8 font-display text-2xl font-semibold text-graphite sm:text-3xl">
-              {node.children.length > 0 ? "Featured products" : "Available products"}
-            </h2>
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {products.map(product => (
-                <ProductCard
-                  key={product.slug}
-                  name={product.name}
-                  description={product.tagline}
-                  image={product.image}
-                  href={`/products/${product.categoryPath.join("/")}/${product.slug}`}
-                  categorySlug={product.categorySlug}
-                  categoryName={node.name}
-                  variants={product.variants}
+      <section id="products" className="scroll-mt-28 py-10 lg:py-14">
+        <Container>
+          <div className="grid gap-8 lg:grid-cols-[15rem_1fr] lg:gap-10">
+            <aside className={sidebarClasses}>
+              <SidebarDrawer label={`Category: ${node.name}`}>
+                <CategorySidebar
+                  tree={tree}
+                  activePathIds={node.pathIds}
+                  counts={counts}
+                  total={catalogueTotal}
                 />
+              </SidebarDrawer>
+            </aside>
+            <ProductListing
+              products={listing.products}
+              total={listing.total}
+              page={page}
+              sort={sort}
+              basePath={basePath}
+              anchor="products"
+              categoryNames={categoryNames}
+              empty={<AvailableOnRequest node={node} />}
+            />
+          </div>
+        </Container>
+      </section>
+
+      {/* Category copy kept for search engines, below the products buyers came for */}
+      {about.length > 0 && (
+        <section className="border-t border-steel-100 py-12">
+          <Container>
+            <div className="max-w-3xl">
+              <h2 className="font-display text-xl font-semibold text-graphite">About {node.name}</h2>
+              {about.map((p, i) => (
+                <p key={i} className="mt-4 leading-relaxed text-graphite/70">
+                  {p}
+                </p>
               ))}
             </div>
           </Container>
@@ -397,19 +486,21 @@ async function ProductDetailPage({
 // ---------------------------------------------------------------
 export default async function ProductsPage({
   params,
+  searchParams,
 }: {
   params: { slug?: string[] };
+  searchParams: Record<string, string | string[] | undefined>;
 }) {
   const slugs = params.slug ?? [];
   const tree = await getCategoryTree();
   const flat = flattenTree(tree);
 
   // /products — no slug
-  if (slugs.length === 0) return <ProductsIndexPage tree={tree} />;
+  if (slugs.length === 0) return <ProductsIndexPage tree={tree} searchParams={searchParams} />;
 
   // Try to match a category path
   const node = findNodeByPath(tree, slugs);
-  if (node) return <CategoryPage node={node} />;
+  if (node) return <CategoryPage node={node} tree={tree} searchParams={searchParams} />;
 
   // Try to match product: last segment = product slug
   const productSlug = slugs[slugs.length - 1];

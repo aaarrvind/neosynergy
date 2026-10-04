@@ -24,8 +24,15 @@ export function SearchModal() {
       }
       if (e.key === "Escape") setOpen(false);
     }
+    // Other parts of the page (e.g. the catalogue's search field) open this
+    // palette by event rather than mounting a second one.
+    const onOpenRequest = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("open-search", onOpenRequest);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("open-search", onOpenRequest);
+    };
   }, []);
 
   useEffect(() => {

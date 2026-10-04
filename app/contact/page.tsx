@@ -12,7 +12,21 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
 };
 
-export default function ContactPage() {
+// Category names arrive from the catalogue's "Available on request" links.
+// Capped, since it is free text from the URL going into a form field.
+const MAX_ENQUIRY_LENGTH = 200;
+
+export default function ContactPage({
+  searchParams,
+}: {
+  searchParams: { enquiry?: string | string[] };
+}) {
+  const raw = Array.isArray(searchParams.enquiry) ? searchParams.enquiry[0] : searchParams.enquiry;
+  const enquiry = raw?.trim().slice(0, MAX_ENQUIRY_LENGTH);
+  const defaultMessage = enquiry
+    ? `I'm looking for: ${enquiry}.\n\nRequirements (model, quantity, specifications): `
+    : "";
+
   return (
     <>
       <section className="bg-graphite py-16 text-white">
@@ -88,7 +102,7 @@ export default function ContactPage() {
                 Send a message
               </h2>
               <div className="mt-4">
-                <ContactForm />
+                <ContactForm defaultMessage={defaultMessage} />
               </div>
             </div>
           </div>

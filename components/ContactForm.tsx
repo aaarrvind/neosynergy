@@ -5,7 +5,11 @@ import { CheckCircle2 } from "lucide-react";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
-export function ContactForm() {
+/**
+ * defaultMessage pre-fills the message, e.g. from a category's "Available on
+ * request" link. It is only an initial value; the visitor can edit it.
+ */
+export function ContactForm({ defaultMessage = "" }: { defaultMessage?: string }) {
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -80,6 +84,7 @@ export function ContactForm() {
           name="message"
           rows={5}
           required
+          defaultValue={defaultMessage}
           placeholder="Tell us about your requirement..."
           className="rounded-md border border-steel-200 px-3 py-2 text-sm"
         />
