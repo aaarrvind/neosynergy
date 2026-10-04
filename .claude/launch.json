@@ -8,6 +8,12 @@
       "port": 3000
     },
     {
+      "name": "prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start", "--", "-p", "3001"],
+      "port": 3001
+    },
+    {
       "name": "dev-fallback",
       "runtimeExecutable": "env",
       "runtimeArgs": ["NEXT_PUBLIC_SUPABASE_URL=placeholder", "npm", "run", "dev"],
