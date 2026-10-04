@@ -218,9 +218,20 @@ export async function POST(request: NextRequest) {
   const fromAddress =
     process.env.QUOTE_FROM_EMAIL || "Neo Synergy Website <onboarding@resend.dev>";
 
-  // If no API key is configured, log the submission so the flow can still
-  // be tested end-to-end during development.
   if (!apiKey) {
+    // In production a missing key must fail loudly. Reporting success here
+    // would show the customer a confirmation while the lead goes nowhere.
+    if (process.env.NODE_ENV === "production") {
+      console.error("[quote] RESEND_API_KEY is not set — enquiry could not be delivered.", {
+        name: contact.name,
+        email: contact.email,
+      });
+      return NextResponse.json(
+        { error: "We couldn't send your request right now. Please email us directly." },
+        { status: 503 }
+      );
+    }
+    // Development only: log the submission so the form can be tested without email.
     console.log("[quote] RESEND_API_KEY not set — logging submission instead of sending email.");
     console.log(JSON.stringify({ contact, items: safeItems }, null, 2));
     return NextResponse.json({ ok: true, mode: "logged" });
@@ -232,18 +243,35 @@ export async function POST(request: NextRequest) {
       ? `New quote request from ${contact.name}${contact.company ? ` (${contact.company})` : ""}`
       : `New website enquiry from ${contact.name}`;
 
+  // Resend's SDK does not throw when the API rejects an email (unverified
+  // domain, bad sender, rate limit) — it resolves to { data: null, error }.
+  // Only network failures throw. Both have to be treated as "not sent", or a
+  // rejected email reports success to the customer and the lead is lost.
+  async function send(payload: Parameters<typeof resend.emails.send>[0]) {
+    try {
+      const { error } = await resend.emails.send(payload);
+      return error ?? null;
+    } catch (thrown) {
+      return thrown;
+    }
+  }
+
   // Send the sales email first — it's the one that matters. If it fails,
   // nothing was delivered yet, so a client retry is safe (no duplicates).
-  try {
-    await resend.emails.send({
-      from: fromAddress,
-      to: salesEmails,
-      replyTo: contact.email,
-      subject,
-      html: buildSalesEmailHtml(contact, safeItems),
+  const salesError = await send({
+    from: fromAddress,
+    to: salesEmails,
+    replyTo: contact.email,
+    subject,
+    html: buildSalesEmailHtml(contact, safeItems),
+  });
+  if (salesError) {
+    // Log the lead itself, so it can be recovered from the logs if the
+    // failure is a configuration problem rather than a transient one.
+    console.error("[quote] Sales email NOT delivered:", salesError, {
+      contact,
+      items: safeItems,
     });
-  } catch (error) {
-    console.error("[quote] Failed to send sales email:", error);
     return NextResponse.json(
       { error: "We couldn't send your request right now. Please try again or email us directly." },
       { status: 502 }
@@ -253,18 +281,17 @@ export async function POST(request: NextRequest) {
   // The confirmation is best-effort: the lead has already been delivered,
   // so failing the request here would only cause duplicate sales emails
   // when the client retries.
-  try {
-    await resend.emails.send({
-      from: fromAddress,
-      to: contact.email,
-      subject:
-        safeItems.length > 0
-          ? "We've received your quote request — Neo Synergy"
-          : "We've received your message — Neo Synergy",
-      html: buildCustomerEmailHtml(contact, safeItems),
-    });
-  } catch (error) {
-    console.error("[quote] Failed to send customer confirmation:", error);
+  const confirmationError = await send({
+    from: fromAddress,
+    to: contact.email,
+    subject:
+      safeItems.length > 0
+        ? "We've received your quote request — Neo Synergy"
+        : "We've received your message — Neo Synergy",
+    html: buildCustomerEmailHtml(contact, safeItems),
+  });
+  if (confirmationError) {
+    console.error("[quote] Customer confirmation not delivered:", confirmationError);
   }
 
   return NextResponse.json({ ok: true });
