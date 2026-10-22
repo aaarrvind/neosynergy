@@ -149,18 +149,20 @@ function buildSalesEmailHtml(contact: ContactDetails, items: CartItem[]): string
     </div>`;
 }
 
-function buildCustomerEmailHtml(contact: ContactDetails, items: CartItem[]): string {
-  const isQuote = items.length > 0;
+// The confirmation goes to whatever address was typed into the form, so it
+// must contain nothing the visitor wrote — not the message, name, or item
+// names/notes. Otherwise anyone could send a scam link to any inbox, from our
+// domain, by putting the victim's address in the email field.
+function buildCustomerEmailHtml(isQuote: boolean): string {
   return `
     <div style="font-family:sans-serif;color:#20242B;">
-      <h2 style="font-family:sans-serif;">Thanks, ${escapeHtml(contact.name.split(" ")[0] || contact.name)}!</h2>
+      <h2 style="font-family:sans-serif;">Thank you for contacting Neo Synergy</h2>
       <p>
         We've received your ${isQuote ? "quote request" : "message"} and a
-        member of the Neo Synergy team will get back to you shortly with
+        member of our team will get back to you shortly with
         ${isQuote ? "pricing, availability, and lead times" : "a response"}.
       </p>
-      ${isQuote ? `<h3 style="font-family:sans-serif;">Your requested items</h3>${buildItemsTable(items)}` : ""}
-      ${contact.message ? `<p><strong>Your message:</strong><br/>${escapeHtml(contact.message).replace(/\n/g, "<br/>")}</p>` : ""}
+      <p>If you didn't contact us, you can ignore this email.</p>
       <p style="margin-top:24px;color:#8A8F99;font-size:12px;">
         ${company.name} &middot; ${company.city}<br/>
         ${company.phones.join(" / ")} &middot; ${company.emails.join(" / ")}
@@ -288,7 +290,7 @@ export async function POST(request: NextRequest) {
       safeItems.length > 0
         ? "We've received your quote request — Neo Synergy"
         : "We've received your message — Neo Synergy",
-    html: buildCustomerEmailHtml(contact, safeItems),
+    html: buildCustomerEmailHtml(safeItems.length > 0),
   });
   if (confirmationError) {
     console.error("[quote] Customer confirmation not delivered:", confirmationError);
