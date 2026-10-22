@@ -132,6 +132,17 @@ export function ProductForm({ existing, existingGroups = [], existingRows = [], 
     return Object.keys(cleaned).length > 0 ? cleaned : null;
   }
 
+  /** Delete this product's rows in `table` except the ones just inserted.
+   *  Keyed on product_id, not on the ids loaded with the page: those go stale
+   *  after a failed save (a retry would delete rows already gone and keep the
+   *  first attempt's copies) or when two tabs edit the same product. */
+  async function deleteOtherRows(table: "spec_groups" | "product_images", productId: string, keepIds: string[]) {
+    let del = createClient().from(table).delete().eq("product_id", productId);
+    if (keepIds.length > 0) del = del.not("id", "in", `(${keepIds.join(",")})`);
+    const { error } = await del;
+    return error?.message ?? null;
+  }
+
   /** Insert the new spec groups/rows first, then delete the old ones — a
    *  failure mid-save must never destroy the previously saved specs.
    *  Returns an error message, or null on success. */
@@ -174,12 +185,7 @@ export function ProductForm({ existing, existingGroups = [], existingRows = [], 
       }
     }
 
-    const oldIds = existingGroups.map(g => g.id);
-    if (oldIds.length > 0) {
-      const { error: delErr } = await supabase.from("spec_groups").delete().in("id", oldIds);
-      if (delErr) return delErr.message;
-    }
-    return null;
+    return deleteOtherRows("spec_groups", productId, newGroups.map(g => g.id));
   }
 
   /** Same insert-then-delete-old pattern as saveSpecGroups. */
@@ -189,24 +195,21 @@ export function ProductForm({ existing, existingGroups = [], existingRows = [], 
     const allImages = (images.length > 0 ? images : [{ id: uid(), url: heroImage, alt: name }])
       .filter(i => i.url);
 
+    let newIds: string[] = [];
     if (allImages.length > 0) {
-      const { error } = await supabase.from("product_images").insert(
+      const { data, error } = await supabase.from("product_images").insert(
         allImages.map((img, i) => ({
           product_id: productId,
           url: img.url,
           alt: img.alt || name,
           sort_order: i + 1,
         }))
-      );
-      if (error) return error.message;
+      ).select("id");
+      if (error || !data) return error?.message ?? "Failed to save images.";
+      newIds = (data as { id: string }[]).map(r => r.id);
     }
 
-    const oldIds = existingImages.map(i => i.id);
-    if (oldIds.length > 0) {
-      const { error: delErr } = await supabase.from("product_images").delete().in("id", oldIds);
-      if (delErr) return delErr.message;
-    }
-    return null;
+    return deleteOtherRows("product_images", productId, newIds);
   }
 
   /** Upsert the selected relations, then remove deselected ones.
